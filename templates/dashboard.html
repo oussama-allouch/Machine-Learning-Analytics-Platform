@@ -1,72 +1,168 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Dashboard · ML Platform{% endblock %}
 
 {% block content %}
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="mb-0">Dashboard</h2>
-    <a class="btn btn-primary" href="{% url 'dataset_upload' %}">Upload Dataset</a>
-    <a href="{% url 'dataset_create_manual' %}" class="btn btn-outline-secondary">Create Manually</a>
+<div class="container my-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="fw-bold mb-1">
+        <i class="bi bi-grid me-2 text-primary"></i>Dashboard
+      </h2>
+      <p class="text-muted mb-0">Welcome back, {{ user.username }}!</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-success" href="{% url 'project_create' %}">
+        <i class="bi bi-plus-circle me-2"></i>New Project
+      </a>
+      <a class="btn btn-primary" href="{% url 'dataset_upload' %}">
+        <i class="bi bi-cloud-upload me-2"></i>Upload Dataset
+      </a>
+    </div>
   </div>
 
-  <div class="row g-3">
+  <!-- Stats Cards -->
+  <div class="row g-4 mb-4">
+    <div class="col-md-4">
+      <div class="stat-card" style="border-left-color: var(--primary);">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="stat-value">{{ projects|length }}</div>
+            <div class="stat-label">Projects</div>
+          </div>
+          <div class="icon-wrapper" style="width: 50px; height: 50px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(99, 102, 241, 0.05) 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+            <i class="bi bi-folder-fill text-primary" style="font-size: 1.5rem;"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="stat-card" style="border-left-color: var(--success);">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="stat-value" style="color: var(--success);">{{ recent_datasets|length }}</div>
+            <div class="stat-label">Datasets</div>
+          </div>
+          <div class="icon-wrapper" style="width: 50px; height: 50px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.05) 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+            <i class="bi bi-database-fill text-success" style="font-size: 1.5rem;"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="stat-card" style="border-left-color: var(--warning);">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="stat-value" style="color: var(--warning);">{{ recent_experiments|length }}</div>
+            <div class="stat-label">Experiments</div>
+          </div>
+          <div class="icon-wrapper" style="width: 50px; height: 50px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.05) 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+            <i class="bi bi-lightning-fill text-warning" style="font-size: 1.5rem;"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="row g-4">
+    <!-- Projects Card -->
     <div class="col-lg-4">
-      <div class="card shadow-sm">
-        <div class="card-header fw-semibold">Recent Projects</div>
+      <div class="card animate-slide-in">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-folder me-2"></i>Recent Projects</span>
+          <a href="{% url 'project_create' %}" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus"></i>
+          </a>
+        </div>
         <div class="card-body">
           {% if projects %}
-            <ul class="list-group">
+            <ul class="list-group list-group-flush">
               {% for p in projects %}
                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                  <a href="{% url 'project_detail' project_id=p.id %}">{{ p.name }}</a>
-                  <small class="text-muted">{{ p.updated_at|date:"Y-m-d H:i" }}</small>
+                  <a href="{% url 'project_detail' project_id=p.id %}" class="text-decoration-none">
+                    <i class="bi bi-folder-fill text-primary me-2"></i>{{ p.name }}
+                  </a>
+                  <small class="text-muted">{{ p.updated_at|date:"M d" }}</small>
                 </li>
               {% endfor %}
             </ul>
           {% else %}
-            <div class="text-muted">No projects yet. Create one from Admin or upload a dataset into a new project.</div>
+            <div class="text-center py-4">
+              <i class="bi bi-inbox" style="font-size: 3rem; color: var(--gray-400);"></i>
+              <p class="text-muted mt-3 mb-0">No projects yet</p>
+              <a href="{% url 'project_create' %}" class="btn btn-sm btn-outline-primary mt-2">Create your first project</a>
+            </div>
           {% endif %}
         </div>
       </div>
     </div>
 
+    <!-- Datasets Card -->
     <div class="col-lg-4">
-      <div class="card shadow-sm">
-        <div class="card-header fw-semibold">Recent Datasets</div>
+      <div class="card animate-slide-in" style="animation-delay: 0.1s;">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-database me-2"></i>Recent Datasets</span>
+          <a href="{% url 'dataset_upload' %}" class="btn btn-sm btn-success">
+            <i class="bi bi-plus"></i>
+          </a>
+        </div>
         <div class="card-body">
           {% if recent_datasets %}
-            <ul class="list-group">
+            <ul class="list-group list-group-flush">
               {% for d in recent_datasets %}
                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                  <a href="{% url 'dataset_detail' dataset_id=d.id %}">{{ d.name }}</a>
-                  <small class="text-muted">{{ d.updated_at|date:"Y-m-d H:i" }}</small>
+                  <a href="{% url 'dataset_detail' dataset_id=d.id %}" class="text-decoration-none">
+                    <i class="bi bi-file-earmark-spreadsheet text-success me-2"></i>{{ d.name }}
+                  </a>
+                  <small class="text-muted">{{ d.updated_at|date:"M d" }}</small>
                 </li>
               {% endfor %}
             </ul>
           {% else %}
-            <div class="text-muted">No datasets yet.</div>
+            <div class="text-center py-4">
+              <i class="bi bi-inbox" style="font-size: 3rem; color: var(--gray-400);"></i>
+              <p class="text-muted mt-3 mb-0">No datasets yet</p>
+              <a href="{% url 'dataset_upload' %}" class="btn btn-sm btn-outline-success mt-2">Upload your first dataset</a>
+            </div>
           {% endif %}
         </div>
       </div>
     </div>
 
+    <!-- Experiments Card -->
     <div class="col-lg-4">
-      <div class="card shadow-sm">
-        <div class="card-header fw-semibold">Recent Experiments</div>
+      <div class="card animate-slide-in" style="animation-delay: 0.2s;">
+        <div class="card-header">
+          <i class="bi bi-lightning me-2"></i>Recent Experiments
+        </div>
         <div class="card-body">
           {% if recent_experiments %}
-            <ul class="list-group">
+            <ul class="list-group list-group-flush">
               {% for e in recent_experiments %}
                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                  <a href="{% url 'experiment_results' experiment_id=e.id %}">{{ e.name }}</a>
-                  <span class="badge bg-secondary">{{ e.status }}</span>
+                  <a href="{% url 'experiment_results' experiment_id=e.id %}" class="text-decoration-none">
+                    <i class="bi bi-lightning-fill text-warning me-2"></i>{{ e.name|truncatewords:3 }}
+                  </a>
+                  <span class="badge {% if e.status == 'SUCCEEDED' %}bg-success{% elif e.status == 'FAILED' %}bg-danger{% else %}bg-secondary{% endif %}">
+                    {{ e.status }}
+                  </span>
                 </li>
               {% endfor %}
             </ul>
           {% else %}
-            <div class="text-muted">No experiments yet.</div>
+            <div class="text-center py-4">
+              <i class="bi bi-inbox" style="font-size: 3rem; color: var(--gray-400);"></i>
+              <p class="text-muted mt-3 mb-0">No experiments yet</p>
+              <p class="small text-muted">Upload a dataset and create a pipeline to get started</p>
+            </div>
           {% endif %}
         </div>
       </div>
     </div>
   </div>
+</div>
 {% endblock %}

@@ -1,55 +1,147 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Dataset Version · ML Platform{% endblock %}
 
 {% block content %}
-  <div class="d-flex justify-content-between align-items-center mb-3">
+<div class="container my-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-start mb-4">
     <div>
-      <h2 class="mb-0">{{ dv.dataset.name }} — v{{ dv.version_number }}</h2>
-      <div class="text-muted">Rows: {{ dv.row_count }} · Columns: {{ dv.column_count }} · SHA256: <code>{{ dv.sha256 }}</code></div>
+      <h2 class="fw-bold mb-1">
+        <i class="bi bi-database me-2 text-success"></i>{{ dv.dataset.name }}
+      </h2>
+      <div class="d-flex gap-3 align-items-center">
+        <span class="badge bg-primary px-3 py-2">Version {{ dv.version_number }}</span>
+        <span class="text-muted">
+          <i class="bi bi-grid-3x3 me-1"></i>{{ dv.row_count }} rows × {{ dv.column_count }} columns
+        </span>
+        <span class="text-muted small">
+          <i class="bi bi-calendar me-1"></i>{{ dv.created_at|date:"M d, Y" }}
+        </span>
+      </div>
     </div>
-    <a class="btn btn-success" href="{% url 'pipeline_wizard' version_id=dv.id %}">Build Pipeline Wizard</a>
+    <a class="btn btn-success btn-lg shadow" href="{% url 'pipeline_wizard' version_id=dv.id %}">
+      <i class="bi bi-magic me-2"></i>Build Pipeline
+    </a>
   </div>
 
-  <div class="row g-3">
-    <div class="col-lg-6">
-      <div class="card shadow-sm">
-        <div class="card-header fw-semibold">Columns</div>
-        <div class="card-body">
-          <table class="table table-sm">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Dtype</th>
-                <th>Missing</th>
-                <th>Unique</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for r in row_data %}
-                <tr>
-                  <td>{{ r.name }}</td>
-                  <td><code>{{ r.dtype }}</code></td>
-                  <td>{{ r.missing }}</td>
-                  <td>{{ r.unique }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+  <!-- Dataset Integrity Card -->
+  <div class="card mb-4 border-0 shadow-sm">
+    <div class="card-body">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <h6 class="fw-bold mb-2">
+            <i class="bi bi-shield-check text-success me-2"></i>Dataset Integrity
+          </h6>
+          <p class="text-muted mb-0 small">
+            SHA256: <code class="text-muted">{{ dv.sha256 }}</code>
+          </p>
+        </div>
+        <div class="col-md-4 text-end">
+          <div class="badge bg-success-subtle text-success px-3 py-2">
+            <i class="bi bi-check-circle-fill me-1"></i>Verified
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-          <div class="small text-muted">
-            Missing/unique details are stored in <code>profile_json</code> (used later for visualization).
+  <div class="row g-4">
+    <!-- Column Information -->
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white border-bottom">
+          <h5 class="mb-0 fw-bold">
+            <i class="bi bi-list-columns me-2 text-primary"></i>Columns
+          </h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead>
+                <tr>
+                  <th><i class="bi bi-tag me-1"></i>Name</th>
+                  <th><i class="bi bi-code-square me-1"></i>Type</th>
+                  <th><i class="bi bi-question-circle me-1"></i>Missing</th>
+                  <th><i class="bi bi-collection me-1"></i>Unique</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in row_data %}
+                  <tr>
+                    <td class="fw-semibold">{{ r.name }}</td>
+                    <td><code class="small">{{ r.dtype }}</code></td>
+                    <td>
+                      {% if r.missing > 0 %}
+                        <span class="badge bg-warning-subtle text-warning">{{ r.missing }}</span>
+                      {% else %}
+                        <span class="text-success">—</span>
+                      {% endif %}
+                    </td>
+                    <td><span class="badge bg-info-subtle text-info">{{ r.unique }}</span></td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- Visualizations -->
     <div class="col-lg-6">
-      <div class="card shadow-sm">
-        <div class="card-header fw-semibold">Profile Summary</div>
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white border-bottom">
+          <h5 class="mb-0 fw-bold">
+            <i class="bi bi-bar-chart me-2 text-success"></i>Dataset Visualizations
+          </h5>
+        </div>
         <div class="card-body">
-          <pre class="mb-0">{{ profile|safe|pprint }}</pre>
+          {% if dv_plot_map.dataset_distributions %}
+            <div class="mb-4">
+              <h6 class="fw-semibold mb-3">
+                <i class="bi bi-graph-up me-2 text-primary"></i>Numeric Distributions
+              </h6>
+              <div class="border rounded overflow-hidden">
+                <img class="img-fluid" src="{{ dv_plot_map.dataset_distributions }}" alt="Distributions">
+              </div>
+            </div>
+          {% else %}
+            <div class="alert alert-info mb-4">
+              <i class="bi bi-info-circle me-2"></i>
+              No numeric columns for distribution plots
+            </div>
+          {% endif %}
+
+          {% if dv_plot_map.dataset_correlation %}
+            <div>
+              <h6 class="fw-semibold mb-3">
+                <i class="bi bi-grid-3x3-gap me-2 text-success"></i>Correlation Heatmap
+              </h6>
+              <div class="border rounded overflow-hidden">
+                <img class="img-fluid" src="{{ dv_plot_map.dataset_correlation }}" alt="Correlation">
+              </div>
+            </div>
+          {% else %}
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle me-2"></i>
+              Need at least 2 numeric columns for correlation
+            </div>
+          {% endif %}
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Next Steps Card -->
+  <div class="card mt-4 border-0 shadow-sm" style="background: var(--gradient-primary); color: white;">
+    <div class="card-body text-center py-4">
+      <h4 class="fw-bold mb-3">Ready to Build Your Model?</h4>
+      <p class="mb-4 opacity-75">Use the Pipeline Wizard to configure preprocessing steps and start training</p>
+      <a class="btn btn-light btn-lg px-5" href="{% url 'pipeline_wizard' version_id=dv.id %}">
+        <i class="bi bi-magic me-2"></i>Start Pipeline Wizard
+      </a>
+    </div>
+  </div>
+</div>
 {% endblock %}

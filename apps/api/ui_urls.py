@@ -2,7 +2,7 @@ from django.urls import path
 from apps.api import ui_views
 
 urlpatterns = [
-    path("", ui_views.dashboard, name="dashboard"),
+    # path("", ui_views.dashboard, name="dashboard"),
 
     path("projects/<int:project_id>/", ui_views.project_detail, name="project_detail"),
     path("projects/<int:project_id>/comparison/", ui_views.project_comparison, name="project_comparison"),
@@ -23,4 +23,14 @@ urlpatterns = [
     path("artifacts/model/<int:experiment_id>/download/", ui_views.download_model, name="download_model"),
 
     path("datasets/create/manual/", ui_views.dataset_create_manual, name="dataset_create_manual"),
+
+    # Landing page (root URL) - Make sure this replaces the old root path if it existed
+    path("", ui_views.landing_page, name="landing_page"),
+
+    # Documentation
+    path("docs/", ui_views.docs_view, name="docs"),
+
+    # Projects
+    path("projects/create/", ui_views.project_create, name="project_create"),
+    path("dashboard/", ui_views.dashboard, name="dashboard"), # Move dashboard here
 ]

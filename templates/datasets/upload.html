@@ -1,40 +1,196 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Upload Dataset · ML Platform{% endblock %}
 
 {% block content %}
-  <h2 class="mb-3">Upload CSV Dataset</h2>
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <!-- Header -->
+      <div class="text-center mb-5">
+        <div class="mb-3">
+          <i class="bi bi-cloud-upload" style="font-size: 4rem; color: var(--primary);"></i>
+        </div>
+        <h2 class="fw-bold mb-2">Upload Dataset</h2>
+        <p class="text-muted">Upload CSV or Excel files to start building your ML pipeline</p>
+      </div>
 
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        <div class="form-group">
-            <label for="project_id">Project</label>
-            <select class="form-control" name="project_id" required>
-                {% for project in projects %}
-                    <option value="{{ project.id }}">{{ project.name }}</option>
+      <!-- Upload Form Card -->
+      <div class="card shadow-lg border-0">
+        <div class="card-body p-4">
+          <form method="post" enctype="multipart/form-data" id="uploadForm">
+            {% csrf_token %}
+
+            <!-- Project Selection -->
+            <div class="mb-4">
+              <label class="form-label">
+                <i class="bi bi-folder me-2 text-primary"></i>Select Project
+              </label>
+              <select class="form-select" name="project_id" required>
+                <option value="">Choose a project...</option>
+                {% for p in projects %}
+                  <option value="{{ p.id }}">{{ p.name }}</option>
                 {% endfor %}
-            </select>
+              </select>
+              <div class="form-text">
+                <i class="bi bi-info-circle me-1"></i>
+                Don't have a project? <a href="{% url 'project_create' %}">Create one first</a>
+              </div>
+            </div>
+
+            <!-- Dataset Name -->
+            <div class="mb-4">
+              <label class="form-label">
+                <i class="bi bi-tag me-2 text-success"></i>Dataset Name
+              </label>
+              <input class="form-control" name="dataset_name" placeholder="e.g., House Prices" required />
+              <div class="form-text">Give your dataset a descriptive name</div>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-4">
+              <label class="form-label">
+                <i class="bi bi-file-text me-2 text-info"></i>Description (Optional)
+              </label>
+              <textarea class="form-control" name="description" rows="3" placeholder="Describe your dataset..."></textarea>
+            </div>
+
+            <!-- File Upload Zone -->
+            <div class="mb-4">
+              <label class="form-label">
+                <i class="bi bi-file-earmark-arrow-up me-2 text-warning"></i>Upload File
+              </label>
+              <div class="file-upload-zone" id="dropZone">
+                <i class="bi bi-cloud-arrow-up" style="font-size: 3rem; color: var(--primary); opacity: 0.5;"></i>
+                <h5 class="mt-3 mb-2">Drag & drop your file here</h5>
+                <p class="text-muted mb-3">or click to browse</p>
+                <input type="file" name="file" id="fileInput" accept=".csv,.xls,.xlsx" required style="display: none;">
+                <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('fileInput').click()">
+                  <i class="bi bi-folder2-open me-2"></i>Browse Files
+                </button>
+                <div class="mt-3 small text-muted">
+                  Supported formats: CSV, XLS, XLSX (Max 20MB)
+                </div>
+              </div>
+              
+              <!-- File Preview -->
+              <div id="filePreview" class="mt-3" style="display: none;">
+                <div class="alert alert-success d-flex align-items-center">
+                  <i class="bi bi-check-circle-fill me-2" style="font-size: 1.5rem;"></i>
+                  <div class="flex-grow-1">
+                    <strong>File selected:</strong>
+                    <span id="fileName"></span>
+                    <br>
+                    <small class="text-muted">Size: <span id="fileSize"></span></small>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearFile()">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex gap-2 justify-content-end">
+              <a class="btn btn-outline-secondary" href="{% url 'dashboard' %}">
+                <i class="bi bi-x-circle me-2"></i>Cancel
+              </a>
+              <button class="btn btn-primary btn-lg" type="submit" id="uploadBtn">
+                <i class="bi bi-cloud-upload me-2"></i>Upload & Profile
+              </button>
+            </div>
+          </form>
         </div>
+      </div>
 
-        <div class="form-group">
-            <label for="dataset_name">Dataset Name</label>
-            <input class="form-control" type="text" name="dataset_name" required>
+      <!-- Tips Card -->
+      <div class="card mt-4 border-0 bg-light">
+        <div class="card-body">
+          <h6 class="fw-bold mb-3">
+            <i class="bi bi-lightbulb text-warning me-2"></i>Tips for Best Results
+          </h6>
+          <ul class="mb-0 small">
+            <li class="mb-2">Ensure your CSV/Excel has clear column headers</li>
+            <li class="mb-2">Remove any empty rows at the beginning of the file</li>
+            <li class="mb-2">Keep dataset size under 20MB for optimal performance</li>
+            <li>Use consistent data types within each column</li>
+          </ul>
         </div>
-
-        <div class="form-group">
-            <label for="description">Description</label>
-            <textarea class="form-control" name="description"></textarea>
-        </div>
-
-        <div class="form-group">
-            <label for="file">Dataset File (CSV, XLS, XLSX)</label>
-            <input class="form-control" type="file" name="file" accept=".csv,.xls,.xlsx" required>
-        </div>
-
-        <button class="btn btn-primary" type="submit">Upload</button>
-      </form>
-
+      </div>
     </div>
   </div>
+</div>
+
+<script>
+// Drag & Drop functionality
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const filePreview = document.getElementById('filePreview');
+const fileName = document.getElementById('fileName');
+const fileSize = document.getElementById('fileSize');
+const uploadBtn = document.getElementById('uploadBtn');
+
+// Prevent default drag behaviors
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+  dropZone.addEventListener(eventName, preventDefaults, false);
+  document.body.addEventListener(eventName, preventDefaults, false);
+});
+
+function preventDefaults(e) {
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+// Highlight drop zone when dragging over
+['dragenter', 'dragover'].forEach(eventName => {
+  dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'));
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+  dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'));
+});
+
+// Handle dropped files
+dropZone.addEventListener('drop', (e) => {
+  const dt = e.dataTransfer;
+  const files = dt.files;
+  fileInput.files = files;
+  handleFiles(files);
+});
+
+// Handle file input change
+fileInput.addEventListener('change', (e) => {
+  handleFiles(e.target.files);
+});
+
+function handleFiles(files) {
+  if (files.length > 0) {
+    const file = files[0];
+    fileName.textContent = file.name;
+    fileSize.textContent = formatBytes(file.size);
+    filePreview.style.display = 'block';
+    dropZone.style.borderColor = 'var(--success)';
+  }
+}
+
+function clearFile() {
+  fileInput.value = '';
+  filePreview.style.display = 'none';
+  dropZone.style.borderColor = 'var(--gray-400)';
+}
+
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+// Form submission with loading state
+document.getElementById('uploadForm').addEventListener('submit', function() {
+  uploadBtn.disabled = true;
+  uploadBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Uploading...';
+});
+</script>
 {% endblock %}

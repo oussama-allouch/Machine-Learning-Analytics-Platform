@@ -648,3 +648,46 @@ def dataset_create_manual(request):
 
     return redirect("dataset_version_detail", version_id=dataset_version.id)
 
+# ==================== NEW VIEWS FOR PHASE 12 ====================
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def project_create(request: HttpRequest) -> HttpResponse:
+    """
+    Simple form to create a new Project.
+    """
+    if request.method == "GET":
+        return render(request, "projects/create.html", {})
+
+    name = (request.POST.get("name") or "").strip()
+    description = (request.POST.get("description") or "").strip()
+
+    errors = {}
+    if not name:
+        errors["name"] = "Project name is required."
+
+    if errors:
+        return render(request, "projects/create.html", {"errors": errors, "name": name, "description": description})
+
+    project = Project.objects.create(
+        owner=request.user,
+        name=name,
+        description=description,
+    )
+
+    return redirect("project_detail", project_id=project.id)
+
+
+def landing_page(request: HttpRequest) -> HttpResponse:
+    """
+    Public landing page with Hero section.
+    Shows 'Go to Dashboard' if logged in, or 'Login/Signup' if not.
+    """
+    return render(request, "landing.html", {})
+
+
+def docs_view(request: HttpRequest) -> HttpResponse:
+    """
+    Documentation page explaining the workflow.
+    """
+    return render(request, "docs.html", {})

@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}ML Platform — AutoML Made Simple{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-7 text-center text-lg-start">
+        <h1 class="display-2 fw-bold mb-4">
+          Build ML Models<br>
+          <span style="opacity: 0.9;">Without Writing Code</span>
+        </h1>
+        <p class="lead mb-5" style="font-size: 1.3rem; opacity: 0.95;">
+          Upload your data, configure pipelines, train models, and get predictions—all through an intuitive interface.
+        </p>
+
+        {% if user.is_authenticated %}
+          <a class="btn btn-light btn-lg px-5 py-3 shadow-lg" href="{% url 'dashboard' %}">
+            <i class="bi bi-grid me-2"></i>Go to Dashboard
+            <i class="bi bi-arrow-right ms-2"></i>
+          </a>
+        {% else %}
+          <div class="d-flex gap-3 justify-content-center justify-content-lg-start">
+            <a class="btn btn-light btn-lg px-5 py-3" href="{% url 'signup' %}">
+              <i class="bi bi-rocket-takeoff me-2"></i>Get Started Free
+            </a>
+            <a class="btn btn-outline-light btn-lg px-5 py-3" href="{% url 'login' %}">
+              <i class="bi bi-box-arrow-in-right me-2"></i>Login
+            </a>
+          </div>
+        {% endif %}
+      </div>
+      <div class="col-lg-5 mt-5 mt-lg-0 text-center">
+        <div class="position-relative">
+          <div style="font-size: 200px; opacity: 0.2;">
+            <i class="bi bi-cpu"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Features Section -->
+<div class="container my-5 py-5">
+  <div class="text-center mb-5">
+    <h2 class="display-5 fw-bold mb-3">Everything You Need</h2>
+    <p class="lead text-muted">Professional ML tools made accessible</p>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-md-4">
+      <div class="feature-card">
+        <div class="icon-wrapper">
+          <i class="bi bi-cloud-upload-fill"></i>
+        </div>
+        <h5 class="text-center">Instant Data Upload</h5>
+        <p class="text-center">
+          Drag and drop CSV or Excel files. Automatic profiling shows data types, missing values, and distributions instantly.
+        </p>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="feature-card">
+        <div class="icon-wrapper" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);">
+          <i class="bi bi-sliders"></i>
+        </div>
+        <h5 class="text-center">Visual Pipeline Builder</h5>
+        <p class="text-center">
+          Configure preprocessing steps through an intuitive wizard. Handle missing values, scale features, and engineer new ones—all without code.
+        </p>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="feature-card">
+        <div class="icon-wrapper" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); box-shadow: 0 8px 16px rgba(245, 158, 11, 0.3);">
+          <i class="bi bi-bar-chart-fill"></i>
+        </div>
+        <h5 class="text-center">Beautiful Visualizations</h5>
+        <p class="text-center">
+          Learning curves, confusion matrices, and comparison charts. Download reports and trained models with one click.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Algorithms Section -->
+<div class="bg-light py-5">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h3 class="display-6 fw-bold mb-3">Powerful Algorithms Included</h3>
+      <p class="lead text-muted">Choose from industry-standard machine learning models</p>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-6 col-md-3">
+        <div class="card text-center p-3 border-0 shadow-sm">
+          <i class="bi bi-graph-up text-primary" style="font-size: 2rem;"></i>
+          <div class="mt-2 fw-semibold">Linear Regression</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card text-center p-3 border-0 shadow-sm">
+          <i class="bi bi-diagram-3 text-success" style="font-size: 2rem;"></i>
+          <div class="mt-2 fw-semibold">Decision Trees</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card text-center p-3 border-0 shadow-sm">
+          <i class="bi bi-tree text-info" style="font-size: 2rem;"></i>
+          <div class="mt-2 fw-semibold">Random Forest</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card text-center p-3 border-0 shadow-sm">
+          <i class="bi bi-boxes text-warning" style="font-size: 2rem;"></i>
+          <div class="mt-2 fw-semibold">Neural Networks</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card text-center p-3 border-0 shadow-sm">
+          <i class="bi bi-shield-check text-primary" style="font-size: 2rem;"></i>
+          <div class="mt-2 fw-semibold">SVM</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card text-center p-3 border-0 shadow-sm">
+          <i class="bi bi-collection text-success" style="font-size: 2rem;"></i>
+          <div class="mt-2 fw-semibold">Naive Bayes</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card text-center p-3 border-0 shadow-sm">
+          <i class="bi bi-bullseye text-danger" style="font-size: 2rem;"></i>
+          <div class="mt-2 fw-semibold">K-Nearest Neighbors</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card text-center p-3 border-0 shadow-sm">
+          <i class="bi bi-grid-3x3 text-secondary" style="font-size: 2rem;"></i>
+          <div class="mt-2 fw-semibold">K-Means</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA Section -->
+<div class="container my-5 py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8 text-center">
+      <div class="card border-0 shadow-lg p-5" style="background: var(--gradient-primary); color: white;">
+        <h2 class="display-5 fw-bold mb-4">Ready to Get Started?</h2>
+        <p class="lead mb-4">
+          Join thousands of users building ML models without writing a single line of code.
+        </p>
+        {% if not user.is_authenticated %}
+          <a class="btn btn-light btn-lg px-5 py-3" href="{% url 'signup' %}">
+            <i class="bi bi-rocket-takeoff me-2"></i>Start Building Now
+          </a>
+        {% else %}
+          <a class="btn btn-light btn-lg px-5 py-3" href="{% url 'dashboard' %}">
+            <i class="bi bi-grid me-2"></i>Go to Dashboard
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

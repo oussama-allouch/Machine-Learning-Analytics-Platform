@@ -1,75 +1,160 @@
 {% extends "base.html" %}
-{% block title %}Project · ML Platform{% endblock %}
+{% load static %}
+{% block title %}{{ project.name }} · ML Platform{% endblock %}
 
 {% block content %}
-  <div class="d-flex justify-content-between align-items-center mb-3">
+<div class="container my-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-start mb-4">
     <div>
-      <h2 class="mb-0">{{ project.name }}</h2>
-      <div class="text-muted">{{ project.description }}</div>
+      <h2 class="fw-bold mb-1">
+        <i class="bi bi-folder me-2 text-primary"></i>{{ project.name }}
+      </h2>
+      <p class="text-muted mb-0">{{ project.description }}</p>
     </div>
     <div class="d-flex gap-2">
-      <a class="btn btn-outline-dark" href="{% url 'project_comparison' project_id=project.id %}">Compare Models</a>
-      <a class="btn btn-primary" href="{% url 'dataset_upload' %}">Upload Dataset</a>
+      <a class="btn btn-outline-dark" href="{% url 'project_comparison' project_id=project.id %}">
+        <i class="bi bi-bar-chart me-2"></i>Compare Models
+      </a>
+      <a class="btn btn-primary" href="{% url 'dataset_upload' %}">
+        <i class="bi bi-cloud-upload me-2"></i>Upload Dataset
+      </a>
     </div>
   </div>
 
-  <div class="row g-3">
+  <!-- Stats Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm text-center p-3" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0.05) 100%);">
+        <div class="stat-value text-primary">{{ datasets.count }}</div>
+        <div class="stat-label">Datasets</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm text-center p-3" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);">
+        <div class="stat-value text-success">{{ pipelines.count }}</div>
+        <div class="stat-label">Pipelines</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm text-center p-3" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);">
+        <div class="stat-value text-warning">{{ experiments.count }}</div>
+        <div class="stat-label">Experiments</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Datasets -->
     <div class="col-lg-4">
-      <div class="card shadow-sm">
-        <div class="card-header fw-semibold">Datasets</div>
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white border-bottom">
+          <h5 class="mb-0 fw-bold">
+            <i class="bi bi-database me-2"></i>Datasets
+          </h5>
+        </div>
         <div class="card-body">
           {% if datasets %}
-            <ul class="list-group">
+            <ul class="list-group list-group-flush">
               {% for d in datasets %}
-                <li class="list-group-item">
-                  <a href="{% url 'dataset_detail' dataset_id=d.id %}">{{ d.name }}</a>
+                <li class="list-group-item px-0">
+                  <a href="{% url 'dataset_detail' dataset_id=d.id %}" class="text-decoration-none d-flex justify-content-between align-items-center">
+                    <span>
+                      <i class="bi bi-file-earmark-spreadsheet text-success me-2"></i>
+                      <strong>{{ d.name }}</strong>
+                    </span>
+                    <i class="bi bi-arrow-right text-muted"></i>
+                  </a>
                 </li>
               {% endfor %}
             </ul>
           {% else %}
-            <div class="text-muted">No datasets yet.</div>
+            <div class="text-center py-4 text-muted">
+              <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+              <p class="mt-3">No datasets yet</p>
+              <a href="{% url 'dataset_upload' %}" class="btn btn-sm btn-outline-success">Upload First Dataset</a>
+            </div>
           {% endif %}
         </div>
       </div>
     </div>
 
+    <!-- Pipelines -->
     <div class="col-lg-4">
-      <div class="card shadow-sm">
-        <div class="card-header fw-semibold">Pipelines</div>
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white border-bottom">
+          <h5 class="mb-0 fw-bold">
+            <i class="bi bi-diagram-3 me-2"></i>Pipelines
+          </h5>
+        </div>
         <div class="card-body">
           {% if pipelines %}
-            <ul class="list-group">
+            <ul class="list-group list-group-flush">
               {% for p in pipelines %}
-                <li class="list-group-item">
-                  <a href="{% url 'pipeline_detail' pipeline_id=p.id %}">{{ p.name }}</a>
+                <li class="list-group-item px-0">
+                  <a href="{% url 'pipeline_detail' pipeline_id=p.id %}" class="text-decoration-none d-flex justify-content-between align-items-center">
+                    <span>
+                      <i class="bi bi-sliders text-primary me-2"></i>
+                      <strong>{{ p.name }}</strong>
+                    </span>
+                    <span class="badge bg-secondary-subtle text-secondary">{{ p.task_type }}</span>
+                  </a>
                 </li>
               {% endfor %}
             </ul>
           {% else %}
-            <div class="text-muted">No pipelines yet.</div>
+            <div class="text-center py-4 text-muted">
+              <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+              <p class="mt-3">No pipelines yet</p>
+              <p class="small">Upload a dataset first</p>
+            </div>
           {% endif %}
         </div>
       </div>
     </div>
 
+    <!-- Experiments -->
     <div class="col-lg-4">
-      <div class="card shadow-sm">
-        <div class="card-header fw-semibold">Experiments</div>
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white border-bottom">
+          <h5 class="mb-0 fw-bold">
+            <i class="bi bi-lightning me-2"></i>Experiments
+          </h5>
+        </div>
         <div class="card-body">
           {% if experiments %}
-            <ul class="list-group">
+            <ul class="list-group list-group-flush">
               {% for e in experiments %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                  <a href="{% url 'experiment_results' experiment_id=e.id %}">{{ e.name }}</a>
-                  <span class="badge bg-secondary">{{ e.status }}</span>
+                <li class="list-group-item px-0">
+                  <a href="{% url 'experiment_results' experiment_id=e.id %}" class="text-decoration-none d-flex justify-content-between align-items-center">
+                    <span>
+                      <i class="bi bi-lightning-fill text-warning me-2"></i>
+                      <strong>{{ e.name|truncatewords:4 }}</strong>
+                    </span>
+                    <span class="badge {% if e.status == 'SUCCEEDED' %}bg-success{% elif e.status == 'FAILED' %}bg-danger{% else %}bg-secondary{% endif %}">
+                      {{ e.status }}
+                    </span>
+                  </a>
                 </li>
               {% endfor %}
             </ul>
           {% else %}
-            <div class="text-muted">No experiments yet.</div>
+            <div class="text-center py-4 text-muted">
+              <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+              <p class="mt-3">No experiments yet</p>
+              <p class="small">Create a pipeline first</p>
+            </div>
           {% endif %}
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Back Button -->
+  <div class="text-center mt-4">
+    <a class="btn btn-outline-secondary" href="{% url 'dashboard' %}">
+      <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+    </a>
+  </div>
+</div>
 {% endblock %}

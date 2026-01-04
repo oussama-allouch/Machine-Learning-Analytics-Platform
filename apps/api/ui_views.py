@@ -691,3 +691,99 @@ def docs_view(request: HttpRequest) -> HttpResponse:
     Documentation page explaining the workflow.
     """
     return render(request, "docs.html", {})
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def experiment_create_quick(request: HttpRequest, pipeline_id: int) -> HttpResponse:
+    """
+    Quick experiment creation - reuses existing pipeline.
+    Simplified form: just select algorithm and adjust hyperparameters.
+    """
+    pipeline = get_object_or_404(Pipeline, id=pipeline_id, owner=request.user)
+    algorithms = Algorithm.objects.all().order_by("family", "display_name")
+
+    # Filter algorithms by task type compatibility
+    compatible_algorithms = [a for a in algorithms if pipeline.task_type in a.supported_tasks]
+
+    if request.method == "GET":
+        algo_payload = []
+        for a in compatible_algorithms:
+            algo_payload.append({
+                "id": a.id,
+                "key": a.key,
+                "display_name": a.display_name,
+                "family": a.family,
+                "supported_tasks": a.supported_tasks,
+                "hyperparameter_schema": a.hyperparameter_schema,
+                "default_hyperparameters": a.default_hyperparameters,
+            })
+        return render(request, "experiments/create_quick.html", {
+            "pipeline": pipeline,
+            "algorithms": compatible_algorithms,
+            "algorithms_json": json.dumps(algo_payload),
+            "task_type": pipeline.task_type,
+        })
+
+    # POST - same logic as regular experiment creation
+    name = (request.POST.get("name") or "").strip()
+    algorithm_id = request.POST.get("algorithm_id")
+    use_cv = request.POST.get("use_cross_validation") == "on"
+    cv_folds = int(request.POST.get("cv_folds") or 5)
+    test_size = float(request.POST.get("test_size") or 0.2)
+    hyperparams_json = request.POST.get("hyperparameters_json") or "{}"
+
+    errors = {}
+    if not name:
+        errors["name"] = "Experiment name is required."
+    if not algorithm_id:
+        errors["algorithm_id"] = "Algorithm is required."
+
+    try:
+        hyperparams = json.loads(hyperparams_json)
+        if not isinstance(hyperparams, dict):
+            raise ValueError
+    except Exception:
+        errors["hyperparameters_json"] = "Invalid hyperparameters JSON."
+        hyperparams = {}
+
+    if errors:
+        algo_payload = []
+        for a in compatible_algorithms:
+            algo_payload.append({
+                "id": a.id,
+                "key": a.key,
+                "display_name": a.display_name,
+                "family": a.family,
+                "supported_tasks": a.supported_tasks,
+                "hyperparameter_schema": a.hyperparameter_schema,
+                "default_hyperparameters": a.default_hyperparameters,
+            })
+        return render(request, "experiments/create_quick.html", {
+            "pipeline": pipeline,
+            "algorithms": compatible_algorithms,
+            "algorithms_json": json.dumps(algo_payload),
+            "task_type": pipeline.task_type,
+            "errors": errors,
+        })
+
+    algo = get_object_or_404(Algorithm, id=int(algorithm_id))
+
+    exp_data = {
+        "project": pipeline.project_id,
+        "dataset_version": pipeline.dataset_version_id,
+        "pipeline": pipeline.id,
+        "algorithm": algo.id,
+        "name": name,
+        "notes": "",
+        "hyperparameters": hyperparams,
+        "test_size": test_size,
+        "use_cross_validation": use_cv,
+        "cv_folds": cv_folds,
+        "random_seed": pipeline.random_seed,
+    }
+    ser = ExperimentSerializer(data=exp_data)
+    ser.is_valid(raise_exception=True)
+    exp = ser.save(owner=request.user)
+
+    run_experiment_threaded(exp.id)
+    return redirect("experiment_results", experiment_id=exp.id)

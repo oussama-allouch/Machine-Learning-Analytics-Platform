@@ -32,5 +32,8 @@ urlpatterns = [
 
     # Projects
     path("projects/create/", ui_views.project_create, name="project_create"),
-    path("dashboard/", ui_views.dashboard, name="dashboard"), # Move dashboard here
+    path("dashboard/", ui_views.dashboard, name="dashboard"),
+
+    path("experiments/quick/<int:pipeline_id>/", ui_views.experiment_create_quick, name="experiment_create_quick"),
+
 ]

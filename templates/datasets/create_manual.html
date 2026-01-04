@@ -1,102 +1,254 @@
 {% extends "base.html" %}
-{% block title %}Create Dataset Manually{% endblock %}
+{% load static %}
+{% block title %}Create Dataset Manually · ML Platform{% endblock %}
 
 {% block content %}
-<div class="mb-3">
-    <h2 class="mb-0">Create Dataset Manually</h2>
-    <div class="text-muted">Project: <span class="fw-semibold">{{ project.name }}</span></div>
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <!-- Header -->
+      <div class="text-center mb-4">
+        <div class="mb-3">
+          <i class="bi bi-table" style="font-size: 4rem; color: var(--info);"></i>
+        </div>
+        <h2 class="fw-bold mb-2">Create Dataset Manually</h2>
+        <p class="text-muted">Build your dataset from scratch with a spreadsheet-like interface</p>
+      </div>
+
+      <!-- Info Alert -->
+      <div class="alert alert-info d-flex align-items-center mb-4">
+        <i class="bi bi-lightbulb-fill me-3" style="font-size: 2rem;"></i>
+        <div>
+          <strong>How it works:</strong>
+          <p class="mb-0 small">
+            Add columns to define your features, then add rows with data. Perfect for small datasets or quick prototypes.
+          </p>
+        </div>
+      </div>
+
+      <form method="post" id="manualDatasetForm">
+        {% csrf_token %}
+
+        <!-- Basic Info Card -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-4">
+              <i class="bi bi-info-circle me-2 text-primary"></i>Dataset Information
+            </h5>
+            
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">
+                  <i class="bi bi-folder me-2"></i>Project
+                </label>
+                <select class="form-select" name="project_id" required>
+                  <option value="">Select a project...</option>
+                  {% for project in projects %}
+                    <option value="{{ project.id }}">{{ project.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label">
+                  <i class="bi bi-tag me-2"></i>Dataset Name
+                </label>
+                <input class="form-control" name="dataset_name" required placeholder="e.g., Sample Data" />
+              </div>
+
+              <div class="col-12">
+                <label class="form-label">
+                  <i class="bi bi-file-text me-2"></i>Description (Optional)
+                </label>
+                <textarea class="form-control" name="description" rows="2" placeholder="Describe your dataset..."></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Columns Card -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold">
+              <i class="bi bi-list-columns me-2 text-success"></i>Columns
+            </h5>
+            <button type="button" class="btn btn-success btn-sm" id="addColumnBtn">
+              <i class="bi bi-plus-circle me-1"></i>Add Column
+            </button>
+          </div>
+          <div class="card-body">
+            <div id="columnsContainer" class="d-flex flex-wrap gap-2">
+              <!-- Columns will appear here -->
+            </div>
+            <div class="text-muted small mt-3">
+              <i class="bi bi-info-circle me-1"></i>
+              Click "Add Column" to create new features for your dataset
+            </div>
+          </div>
+        </div>
+
+        <!-- Rows Card -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold">
+              <i class="bi bi-table me-2 text-info"></i>Data Rows
+            </h5>
+            <button type="button" class="btn btn-info btn-sm" id="addRowBtn" disabled>
+              <i class="bi bi-plus-circle me-1"></i>Add Row
+            </button>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-bordered" id="dataTable">
+                <thead id="tableHead">
+                  <tr>
+                    <th style="width: 50px;">#</th>
+                    <th class="text-muted">Add columns first</th>
+                  </tr>
+                </thead>
+                <tbody id="tableBody">
+                  <!-- Rows will appear here -->
+                </tbody>
+              </table>
+            </div>
+            <div class="text-muted small">
+              <i class="bi bi-info-circle me-1"></i>
+              Add at least one column before adding rows
+            </div>
+          </div>
+        </div>
+
+        <input type="hidden" name="columns_json" id="columnsJson" />
+        <input type="hidden" name="rows_json" id="rowsJson" />
+
+        <!-- Action Buttons -->
+        <div class="d-flex gap-2 justify-content-end">
+          <a class="btn btn-outline-secondary" href="{% url 'dashboard' %}">
+            <i class="bi bi-x-circle me-2"></i>Cancel
+          </a>
+          <button class="btn btn-primary btn-lg" type="submit" id="saveBtn" disabled>
+            <i class="bi bi-save me-2"></i>Create Dataset
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
-
-<form method="post">
-    {% csrf_token %}
-    <div class="form-group">
-        <label for="project_id">Project</label>
-        <select class="form-control" name="project_id" required>
-            {% for project in projects %}
-                <option value="{{ project.id }}">{{ project.name }}</option>
-            {% endfor %}
-        </select>
-    </div>
-
-    <div class="form-group">
-        <label for="dataset_name">Dataset Name</label>
-        <input class="form-control" type="text" name="dataset_name" required>
-    </div>
-
-    <div class="form-group">
-        <label for="description">Description</label>
-        <textarea class="form-control" name="description"></textarea>
-    </div>
-
-    <div class="form-group">
-        <h4>Columns</h4>
-        <button type="button" class="btn btn-outline-primary" id="addColumnBtn">Add Column</button>
-        <div id="columnsContainer"></div>
-    </div>
-
-    <div class="form-group">
-        <h4>Rows</h4>
-        <button type="button" class="btn btn-outline-primary" id="addRowBtn">Add Row</button>
-        <div id="rowsContainer"></div>
-    </div>
-
-    <button type="submit" class="btn btn-success">Save Dataset</button>
-</form>
 
 <script>
   const columnsContainer = document.getElementById("columnsContainer");
-  const rowsContainer = document.getElementById("rowsContainer");
+  const tableHead = document.getElementById("tableHead");
+  const tableBody = document.getElementById("tableBody");
   const addColumnBtn = document.getElementById("addColumnBtn");
   const addRowBtn = document.getElementById("addRowBtn");
+  const saveBtn = document.getElementById("saveBtn");
+  const columnsJsonEl = document.getElementById("columnsJson");
+  const rowsJsonEl = document.getElementById("rowsJson");
 
   let columns = [];
   let rows = [];
 
+  function updateUI() {
+    addRowBtn.disabled = columns.length === 0;
+    saveBtn.disabled = columns.length === 0 || rows.length === 0;
+    
+    if (columns.length === 0) {
+      tableHead.innerHTML = '<tr><th style="width: 50px;">#</th><th class="text-muted">Add columns first</th></tr>';
+      tableBody.innerHTML = '';
+    }
+  }
+
   addColumnBtn.addEventListener("click", function () {
     const columnName = prompt("Enter column name:");
-    if (columnName) {
-      columns.push({ name: columnName });
+    if (columnName && columnName.trim()) {
+      const name = columnName.trim();
+      if (columns.find(c => c.name === name)) {
+        alert("Column name already exists!");
+        return;
+      }
+      columns.push({ name });
       renderColumns();
+      updateUI();
     }
-  });
-
-  addRowBtn.addEventListener("click", function () {
-    const row = {};
-    columns.forEach(column => {
-      const value = prompt(`Enter value for column "${column.name}":`);
-      row[column.name] = value || null;
-    });
-    rows.push(row);
-    renderRows();
   });
 
   function renderColumns() {
     columnsContainer.innerHTML = "";
-    columns.forEach(column => {
-      const div = document.createElement("div");
-      div.textContent = column.name;
-      columnsContainer.appendChild(div);
-    });
-  }
-
-  function renderRows() {
-    rowsContainer.innerHTML = "";
-    rows.forEach(row => {
-      const rowDiv = document.createElement("div");
-      Object.keys(row).forEach(columnName => {
-        const span = document.createElement("span");
-        span.textContent = `${columnName}: ${row[columnName]} `;
-        rowDiv.appendChild(span);
+    columns.forEach((col, idx) => {
+      const badge = document.createElement("span");
+      badge.className = "badge bg-success-subtle text-success fs-6 d-flex align-items-center gap-2";
+      badge.innerHTML = `
+        ${col.name}
+        <button type="button" class="btn-close btn-close-sm" style="font-size: 0.7rem;"></button>
+      `;
+      badge.querySelector("button").addEventListener("click", () => {
+        columns.splice(idx, 1);
+        rows = rows.map(row => {
+          delete row[col.name];
+          return row;
+        });
+        renderColumns();
+        renderTable();
+        updateUI();
       });
-      rowsContainer.appendChild(rowDiv);
+      columnsContainer.appendChild(badge);
+    });
+
+    // Update table header
+    if (columns.length > 0) {
+      tableHead.innerHTML = '<tr><th style="width: 50px;">#</th>' + 
+        columns.map(c => `<th>${c.name}</th>`).join('') +
+        '<th style="width: 80px;">Action</th></tr>';
+    }
+  }
+
+  addRowBtn.addEventListener("click", function () {
+    const row = {};
+    let allFilled = true;
+    
+    columns.forEach(col => {
+      const value = prompt(`Enter value for "${col.name}":`);
+      if (value === null) {
+        allFilled = false;
+        return;
+      }
+      row[col.name] = value || "";
+    });
+
+    if (allFilled) {
+      rows.push(row);
+      renderTable();
+      updateUI();
+    }
+  });
+
+  function renderTable() {
+    tableBody.innerHTML = "";
+    rows.forEach((row, idx) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td class="text-center fw-bold">${idx + 1}</td>` +
+        columns.map(c => `<td>${row[c.name] || ''}</td>`).join('') +
+        `<td class="text-center">
+          <button type="button" class="btn btn-sm btn-outline-danger remove-row">
+            <i class="bi bi-trash"></i>
+          </button>
+        </td>`;
+      
+      tr.querySelector(".remove-row").addEventListener("click", () => {
+        rows.splice(idx, 1);
+        renderTable();
+        updateUI();
+      });
+      
+      tableBody.appendChild(tr);
     });
   }
 
-  document.querySelector("form").addEventListener("submit", function () {
-    const columnsJson = JSON.stringify(columns);
-    const rowsJson = JSON.stringify(rows);
-    document.querySelector("input[name='columns_json']").value = columnsJson;
-    document.querySelector("input[name='rows_json']").value = rowsJson;
+  document.getElementById("manualDatasetForm").addEventListener("submit", function () {
+    columnsJsonEl.value = JSON.stringify(columns);
+    rowsJsonEl.value = JSON.stringify(rows);
   });
+
+  updateUI();
 </script>
 {% endblock %}

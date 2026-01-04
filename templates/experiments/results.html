@@ -236,3 +236,36 @@
   </div>
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const status = "{{ exp.status }}";
+    const expId = "{{ exp.id }}";
+    
+    // Only poll if the experiment is active
+    if (status === 'RUNNING' || status === 'PENDING') {
+      console.log("Experiment is running. Starting poller...");
+      
+      const pollInterval = setInterval(() => {
+        // Call the REST API to check status
+        fetch(`/api/v1/experiments/${expId}/`)
+          .then(response => response.json())
+          .then(data => {
+            console.log("Current status:", data.status);
+            
+            if (data.status === 'SUCCEEDED' || data.status === 'FAILED') {
+              // Stop polling
+              clearInterval(pollInterval);
+              
+              // Show a toast or message (optional)
+              // Reload the page to display results/plots
+              window.location.reload();
+            }
+          })
+          .catch(err => console.error("Error polling status:", err));
+      }, 2000); // Check every 2 seconds
+    }
+  });
+</script>
+{% endblock %}

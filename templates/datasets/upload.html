@@ -21,43 +21,53 @@
           <form method="post" enctype="multipart/form-data" id="uploadForm">
             {% csrf_token %}
 
-            <!-- Project Selection -->
-            <div class="mb-4">
-              <label class="form-label">
-                <i class="bi bi-folder me-2 text-primary"></i>Select Project
-              </label>
-              <select class="form-select" name="project_id" required>
-                <option value="">Choose a project...</option>
-                {% for p in projects %}
-                  <option value="{{ p.id }}">{{ p.name }}</option>
-                {% endfor %}
-              </select>
-              <div class="form-text">
-                <i class="bi bi-info-circle me-1"></i>
-                Don't have a project? <a href="{% url 'project_create' %}">Create one first</a>
+            {% if target_dataset %}
+              <!-- NEW VERSION MODE -->
+              <input type="hidden" name="target_dataset_id" value="{{ target_dataset.id }}">
+              
+              <div class="alert alert-info d-flex align-items-center mb-4">
+                <i class="bi bi-info-circle-fill me-3 fs-4"></i>
+                <div>
+                  <strong>Uploading new version for:</strong> {{ target_dataset.name }}
+                  <br><small class="text-muted">Project: {{ target_dataset.project.name }}</small>
+                </div>
               </div>
-            </div>
+            {% else %}
+              <!-- NEW DATASET MODE -->
+              <div class="mb-4">
+                <label class="form-label">
+                  <i class="bi bi-folder me-2 text-primary"></i>Select Project
+                </label>
+                <select class="form-select" name="project_id" required>
+                  <option value="">Choose a project...</option>
+                  {% for p in projects %}
+                    <option value="{{ p.id }}">{{ p.name }}</option>
+                  {% endfor %}
+                </select>
+                <div class="form-text">
+                  Don't have a project? <a href="{% url 'project_create' %}">Create one first</a>
+                </div>
+              </div>
 
-            <!-- Dataset Name -->
-            <div class="mb-4">
-              <label class="form-label">
-                <i class="bi bi-tag me-2 text-success"></i>Dataset Name
-              </label>
-              <input class="form-control" name="dataset_name" placeholder="e.g., House Prices" required />
-              <div class="form-text">Give your dataset a descriptive name</div>
-            </div>
+              <div class="mb-4">
+                <label class="form-label">
+                  <i class="bi bi-tag me-2 text-success"></i>Dataset Name
+                </label>
+                <input class="form-control" name="dataset_name" placeholder="e.g., House Prices" required />
+              </div>
 
-            <!-- Description -->
-            <div class="mb-4">
-              <label class="form-label">
-                <i class="bi bi-file-text me-2 text-info"></i>Description (Optional)
-              </label>
-              <textarea class="form-control" name="description" rows="3" placeholder="Describe your dataset..."></textarea>
-            </div>
+              <div class="mb-4">
+                <label class="form-label">
+                  <i class="bi bi-file-text me-2 text-info"></i>Description (Optional)
+                </label>
+                <textarea class="form-control" name="description" rows="3" placeholder="Describe your dataset..."></textarea>
+              </div>
+            {% endif %}
 
-            <!-- File Upload Zone -->
+            <!-- File Upload Zone (Stays the same) -->
             <div class="mb-4">
-              <label class="form-label">
+               <!-- ... keep your existing file upload zone code here ... -->
+               <label class="form-label">
                 <i class="bi bi-file-earmark-arrow-up me-2 text-warning"></i>Upload File
               </label>
               <div class="file-upload-zone" id="dropZone">
@@ -73,7 +83,6 @@
                 </div>
               </div>
               
-              <!-- File Preview -->
               <div id="filePreview" class="mt-3" style="display: none;">
                 <div class="alert alert-success d-flex align-items-center">
                   <i class="bi bi-check-circle-fill me-2" style="font-size: 1.5rem;"></i>
@@ -92,11 +101,12 @@
 
             <!-- Action Buttons -->
             <div class="d-flex gap-2 justify-content-end">
-              <a class="btn btn-outline-secondary" href="{% url 'dashboard' %}">
+              <a class="btn btn-outline-secondary" href="{% if target_dataset %}{% url 'dataset_detail' dataset_id=target_dataset.id %}{% else %}{% url 'dashboard' %}{% endif %}">
                 <i class="bi bi-x-circle me-2"></i>Cancel
               </a>
               <button class="btn btn-primary btn-lg" type="submit" id="uploadBtn">
-                <i class="bi bi-cloud-upload me-2"></i>Upload & Profile
+                <i class="bi bi-cloud-upload me-2"></i>
+                {% if target_dataset %}Upload Version{% else %}Create Dataset{% endif %}
               </button>
             </div>
           </form>

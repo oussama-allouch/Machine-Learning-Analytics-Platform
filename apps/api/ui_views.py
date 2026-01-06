@@ -130,70 +130,82 @@ def project_comparison(request: HttpRequest, project_id: int) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def dataset_upload(request: HttpRequest) -> HttpResponse:
     projects = Project.objects.filter(owner=request.user).order_by("-updated_at")
+    
+    # Check if we are targeting an existing dataset (New Version Mode)
+    target_dataset_id = request.GET.get('dataset_id') or request.POST.get('target_dataset_id')
+    target_dataset = None
+    if target_dataset_id:
+        target_dataset = get_object_or_404(Dataset, id=target_dataset_id, owner=request.user)
 
     if request.method == "GET":
-        return render(request, "datasets/upload.html", {"projects": projects})
+        return render(request, "datasets/upload.html", {
+            "projects": projects, 
+            "target_dataset": target_dataset
+        })
 
-    project_id = request.POST.get("project_id")
-    dataset_name = (request.POST.get("dataset_name") or "").strip()
-    description = (request.POST.get("description") or "").strip()
+    # POST Logic
     file = request.FILES.get("file")
-
     errors = {}
-    if not project_id:
-        errors["project_id"] = "Project is required."
-    if not dataset_name:
-        errors["dataset_name"] = "Dataset name is required."
     if not file:
-        errors["file"] = "CSV file is required."
+        errors["file"] = "File is required."
 
-    # 20MB hard limit (also enforced in settings)
     MAX_CSV_MB = 20
     if file and file.size > MAX_CSV_MB * 1024 * 1024:
-        errors["file"] = f"CSV too large (max {MAX_CSV_MB}MB)."
+        errors["file"] = f"File too large (max {MAX_CSV_MB}MB)."
 
     if errors:
-        return render(request, "datasets/upload.html", {"projects": projects, "errors": errors})
+        return render(request, "datasets/upload.html", {
+            "projects": projects, 
+            "target_dataset": target_dataset,
+            "errors": errors
+        })
 
-    project = get_object_or_404(Project, id=int(project_id), owner=request.user)
+    # Determine Dataset logic
+    if target_dataset:
+        # We are adding a version to an EXISTING dataset
+        dataset = target_dataset
+    else:
+        # We are creating a NEW dataset
+        project_id = request.POST.get("project_id")
+        dataset_name = (request.POST.get("dataset_name") or "").strip()
+        description = (request.POST.get("description") or "").strip()
 
-    dataset, _ = Dataset.objects.get_or_create(
-        owner=request.user,
-        project=project,
-        name=dataset_name,
-        defaults={
-            "description": description,
-            "source_type": "CSV_UPLOAD",
-            "external_source": {},
-        }
-    )
-    if description and dataset.description != description:
-        dataset.description = description
-        dataset.save(update_fields=["description", "updated_at"])
+        if not project_id: return render(request, "datasets/upload.html", {"projects": projects, "errors": {"project_id": "Required"}})
+        if not dataset_name: return render(request, "datasets/upload.html", {"projects": projects, "errors": {"dataset_name": "Required"}})
 
-    # --- NEW FILE HANDLING LOGIC ---
+        project = get_object_or_404(Project, id=int(project_id), owner=request.user)
+        dataset, _ = Dataset.objects.get_or_create(
+            owner=request.user,
+            project=project,
+            name=dataset_name,
+            defaults={
+                "description": description,
+                "source_type": "CSV_UPLOAD",
+                "external_source": {},
+            }
+        )
+        if description and dataset.description != description:
+            dataset.description = description
+            dataset.save(update_fields=["description", "updated_at"])
+
     # --- ROBUST FILE HANDLING LOGIC ---
     ext = os.path.splitext(file.name)[1].lower()
-    
+    content = b""
+    file_to_save = None
+
     try:
         if ext in ['.xls', '.xlsx']:
-            # Try reading as Excel
             df = pd.read_excel(file, engine='openpyxl')
             content = df.to_csv(index=False).encode('utf-8')
-            # Change filename to .csv for consistency
             filename = os.path.splitext(file.name)[0] + ".csv"
-            from django.core.files.base import ContentFile
             file_to_save = ContentFile(content, name=filename)
         else:
-            # Assume CSV
             content = file.read()
             file.seek(0)
             file_to_save = file
-            # Quick check: can pandas read it?
             try:
                 pd.read_csv(io.BytesIO(content))
             except Exception:
-                # If CSV fails, maybe it was a renamed Excel file? Try Excel reader as backup
                 file.seek(0)
                 df = pd.read_excel(file, engine='openpyxl')
                 content = df.to_csv(index=False).encode('utf-8')
@@ -202,12 +214,11 @@ def dataset_upload(request: HttpRequest) -> HttpResponse:
     except Exception as e:
         return render(request, "datasets/upload.html", {
             "projects": projects,
-            "errors": {"file": f"Could not read file. Ensure it is a valid CSV or Excel file. Error: {str(e)}"}
+            "target_dataset": target_dataset,
+            "errors": {"file": f"Error reading file: {str(e)}"}
         })
 
     sha256 = DatasetVersion.compute_sha256(content)
-    
-    # ... (Versioning logic stays same) ...
     latest = DatasetVersion.objects.filter(dataset=dataset).order_by("-version_number").first()
     next_version = (latest.version_number + 1) if latest else 1
 
@@ -215,7 +226,7 @@ def dataset_upload(request: HttpRequest) -> HttpResponse:
         dataset=dataset,
         created_by=request.user,
         version_number=next_version,
-        file=file_to_save, # Use the potentially converted file
+        file=file_to_save,
         sha256=sha256,
         row_count=0,
         column_count=0,
@@ -224,8 +235,7 @@ def dataset_upload(request: HttpRequest) -> HttpResponse:
         notes="",
     )
 
-    # Profile now (real)
-    # Re-read from saved path (now always CSV compatible)
+    # Profile
     df = pd.read_csv(dv.file.path)
     dv.row_count = int(df.shape[0])
     dv.column_count = int(df.shape[1])
@@ -234,10 +244,9 @@ def dataset_upload(request: HttpRequest) -> HttpResponse:
         "missing_by_column": {c: int(df[c].isna().sum()) for c in df.columns},
         "unique_by_column": {c: int(df[c].nunique(dropna=True)) for c in df.columns},
     }
-    dv.save(update_fields=["row_count", "column_count", "schema_json", "profile_json"])
+    dv.save()
 
-    # Generate dataset plots (PNG)
-    generate_dataset_plots(dataset_version=dv, df=df, owner=request.user, project=project)
+    generate_dataset_plots(dataset_version=dv, df=df, owner=request.user, project=dataset.project)
 
     return redirect("dataset_version_detail", version_id=dv.id)
 

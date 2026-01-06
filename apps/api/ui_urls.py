@@ -2,7 +2,6 @@ from django.urls import path
 from apps.api import ui_views
 
 urlpatterns = [
-    # path("", ui_views.dashboard, name="dashboard"),
 
     path("projects/<int:project_id>/", ui_views.project_detail, name="project_detail"),
     path("projects/<int:project_id>/comparison/", ui_views.project_comparison, name="project_comparison"),
@@ -35,5 +34,8 @@ urlpatterns = [
     path("dashboard/", ui_views.dashboard, name="dashboard"),
 
     path("experiments/quick/<int:pipeline_id>/", ui_views.experiment_create_quick, name="experiment_create_quick"),
+
+    path("dataset-versions/<int:version_id>/edit-types/", ui_views.dataset_version_edit_types, name="dataset_version_edit_types"),
+
 
 ]

@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% load static %}
+{% load custom_filters %}
+{% block title %}Edit Data Types · ML Platform{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <!-- Header -->
+      <div class="text-center mb-4">
+        <div class="mb-3">
+          <i class="bi bi-code-square" style="font-size: 4rem; color: var(--warning);"></i>
+        </div>
+        <h2 class="fw-bold mb-2">Fix Data Types</h2>
+        <p class="text-muted">
+          Dataset: <span class="fw-semibold text-primary">{{ dv.dataset.name }}</span> (v{{ dv.version_number }})
+        </p>
+      </div>
+
+      <!-- Warning Alert -->
+      <div class="alert alert-warning d-flex align-items-center mb-4">
+        <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 2rem;"></i>
+        <div>
+          <strong>Common Issue:</strong>
+          <p class="mb-0 small">
+            CSV files often have all columns detected as "object" type. Fix numeric and boolean columns here before building your pipeline.
+          </p>
+        </div>
+      </div>
+
+      <!-- Data Preview Card -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white border-bottom">
+          <h5 class="mb-0 fw-bold">
+            <i class="bi bi-table me-2 text-info"></i>Data Preview (First 10 Rows)
+          </h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 50px;" class="text-center">#</th>
+                  {% for col in column_names %}
+                    <th>{{ col }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in preview_data %}
+                  <tr>
+                    <td class="text-center text-muted">{{ forloop.counter }}</td>
+                    {% for col in column_names %}
+                      <td class="small">{{ row|get_item:col }}</td>
+                    {% endfor %}
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Type Editor Form -->
+      <form method="post" id="typeForm">
+        {% csrf_token %}
+        
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white border-bottom">
+            <h5 class="mb-0 fw-bold">
+              <i class="bi bi-sliders me-2 text-primary"></i>Configure Data Types
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-bordered align-middle">
+                <thead>
+                  <tr>
+                    <th style="width: 30%;">Column Name</th>
+                    <th style="width: 20%;">Current Type</th>
+                    <th style="width: 30%;">New Type</th>
+                    <th style="width: 20%;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for col in columns %}
+                    <tr>
+                      <td class="fw-semibold">
+                        <i class="bi bi-tag me-2 text-muted"></i>{{ col.name }}
+                      </td>
+                      <td>
+                        <code class="small">{{ col.dtype }}</code>
+                      </td>
+                      <td>
+                        <select class="form-select form-select-sm" name="type_{{ col.name }}" id="type_{{ col.name }}">
+                          <option value="object" {% if col.dtype == "object" %}selected{% endif %}>object (text)</option>
+                          <option value="int64" {% if "int" in col.dtype %}selected{% endif %}>int64 (integer)</option>
+                          <option value="float64" {% if "float" in col.dtype %}selected{% endif %}>float64 (decimal)</option>
+                          <option value="bool" {% if "bool" in col.dtype %}selected{% endif %}>bool (true/false)</option>
+                          <option value="datetime64[ns]" {% if "datetime" in col.dtype %}selected{% endif %}>datetime</option>
+                          <option value="category">category</option>
+                        </select>
+                      </td>
+                      <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                          <button type="button" class="btn btn-outline-secondary" onclick="setType('{{ col.name }}', 'int64')">
+                            <i class="bi bi-hash"></i> Int
+                          </button>
+                          <button type="button" class="btn btn-outline-secondary" onclick="setType('{{ col.name }}', 'float64')">
+                            <i class="bi bi-123"></i> Float
+                          </button>
+                          <button type="button" class="btn btn-outline-secondary" onclick="setType('{{ col.name }}', 'object')">
+                            <i class="bi bi-fonts"></i> Text
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Type Guide -->
+            <div class="alert alert-info mt-4">
+              <h6 class="fw-bold mb-2">
+                <i class="bi bi-info-circle me-2"></i>Data Type Guide
+              </h6>
+              <div class="row small">
+                <div class="col-md-4">
+                  <strong>int64:</strong> Whole numbers (0, 1, 2, -5)
+                </div>
+                <div class="col-md-4">
+                  <strong>float64:</strong> Decimal numbers (1.5, 3.14)
+                </div>
+                <div class="col-md-4">
+                  <strong>object:</strong> Text or mixed types
+                </div>
+                <div class="col-md-4 mt-2">
+                  <strong>bool:</strong> True/False values
+                </div>
+                <div class="col-md-4 mt-2">
+                  <strong>datetime:</strong> Dates and times
+                </div>
+                <div class="col-md-4 mt-2">
+                  <strong>category:</strong> Categorical labels
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex gap-2 justify-content-end">
+          <a class="btn btn-outline-secondary" href="{% url 'dataset_version_detail' version_id=dv.id %}">
+            <i class="bi bi-x-circle me-2"></i>Cancel
+          </a>
+          <button class="btn btn-warning btn-lg" type="submit">
+            <i class="bi bi-check-circle me-2"></i>Apply Changes & Re-profile
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function setType(columnName, type) {
+  document.getElementById('type_' + columnName).value = type;
+}
+
+// Auto-detect suggestions based on preview
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('typeForm');
+  
+  // Add confirmation before submitting
+  form.addEventListener('submit', function(e) {
+    const confirmed = confirm(
+      'This will convert data types and regenerate the dataset profile. Continue?'
+    );
+    if (!confirmed) {
+      e.preventDefault();
+    }
+  });
+});
+</script>
+
+<!-- Custom filter for Django template -->
+
+{% endblock %}

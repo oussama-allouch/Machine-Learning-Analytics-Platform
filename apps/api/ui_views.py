@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any, Dict
 import io
+from django.utils import timezone
 
 import os
 import openpyxl
@@ -251,9 +252,9 @@ def dataset_detail(request: HttpRequest, dataset_id: int) -> HttpResponse:
 @login_required
 def dataset_version_detail(request: HttpRequest, version_id: int) -> HttpResponse:
     """
-    FIXED:
-    - Builds row_data = [{'name','dtype','missing','unique'}, ...]
-    - Fetches dataset plots (distributions + correlation heatmap) and passes URLs to template.
+    ENHANCED:
+    - Shows first 10 rows preview
+    - Highlights data type issues (Check moved to Python side)
     """
     dv = get_object_or_404(DatasetVersion, id=version_id)
     _ensure_owner(dv, request.user)
@@ -274,7 +275,14 @@ def dataset_version_detail(request: HttpRequest, version_id: int) -> HttpRespons
             "unique": int(unique_by.get(name, 0)),
         })
 
-    # Fetch dataset-level plots (experiment is null)
+    # LOGIC FIX: Calculate if there are issues here in Python
+    has_type_issues = any("object" in str(r["dtype"]) for r in row_data)
+
+    # Load first 10 rows for preview
+    df = pd.read_csv(dv.file.path, nrows=10)
+    preview_rows = df.to_dict('records')
+
+    # Fetch dataset-level plots
     plots = PlotArtifact.objects.filter(dataset_version=dv, experiment__isnull=True)
     dv_plot_map: Dict[str, str] = {}
     for p in plots:
@@ -285,8 +293,117 @@ def dataset_version_detail(request: HttpRequest, version_id: int) -> HttpRespons
     return render(request, "datasets/version_detail.html", {
         "dv": dv,
         "row_data": row_data,
+        "preview_rows": preview_rows,
         "dv_plot_map": dv_plot_map,
+        "has_type_issues": has_type_issues, # <-- Passed to template
     })
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def dataset_version_edit_types(request: HttpRequest, version_id: int) -> HttpResponse:
+    """
+    Allow users to fix data types for columns.
+    Critical for datasets where everything is detected as 'object'.
+    """
+    dv = get_object_or_404(DatasetVersion, id=version_id)
+    _ensure_owner(dv, request.user)
+
+    # Load current data
+    df = pd.read_csv(dv.file.path)
+    
+    # Get current schema
+    columns = (dv.schema_json or {}).get("columns", [])
+    if not columns:
+        columns = [{"name": c, "dtype": str(df[c].dtype)} for c in df.columns]
+
+    if request.method == "GET":
+        # Show first 10 rows for preview
+        preview_data = df.head(10).to_dict('records')
+        
+        return render(request, "datasets/edit_types.html", {
+            "dv": dv,
+            "columns": columns,
+            "preview_data": preview_data,
+            "column_names": list(df.columns),
+        })
+
+    # POST - Apply type changes
+    type_changes = {}
+    for col in df.columns:
+        new_type = request.POST.get(f"type_{col}")
+        if new_type:
+            type_changes[col] = new_type
+
+    errors = {}
+    
+    # Apply type conversions with cleaning
+    for col, new_type in type_changes.items():
+        try:
+            if new_type == "int64":
+                # Remove currency symbols and commas before converting
+                clean_col = df[col].astype(str).str.replace(r'[$,]', '', regex=True)
+                s = pd.to_numeric(clean_col, errors='raise')
+                df[col] = s.astype('int64')
+
+            elif new_type == "float64":
+                # Remove currency symbols and commas
+                clean_col = df[col].astype(str).str.replace(r'[$,]', '', regex=True)
+                df[col] = pd.to_numeric(clean_col, errors='raise')
+
+            elif new_type == "bool":
+                # Robust bool conversion
+                true_vals = {'true', '1', 'yes', 'y', 't'}
+                df[col] = df[col].astype(str).str.lower().apply(lambda x: x in true_vals)
+
+            elif new_type == "datetime64[ns]":
+                # Try dayfirst=True for DD/MM/YYYY formats
+                try:
+                    df[col] = pd.to_datetime(df[col], dayfirst=True, errors='raise')
+                except:
+                    # Fallback to standard parser
+                    df[col] = pd.to_datetime(df[col], errors='raise')
+
+            elif new_type == "category":
+                df[col] = df[col].astype('category')
+
+        except Exception as e:
+            errors[col] = f"Cannot convert to {new_type}. Error: {str(e)}"
+
+    if errors:
+        preview_data = df.head(10).to_dict('records')
+        return render(request, "datasets/edit_types.html", {
+            "dv": dv,
+            "columns": columns,
+            "preview_data": preview_data,
+            "column_names": list(df.columns),
+            "errors": errors,
+        })
+
+    # Save updated dataset as new CSV
+    csv_bytes = df.to_csv(index=False).encode('utf-8')
+    sha256 = DatasetVersion.compute_sha256(csv_bytes)
+    
+    # Update the dataset version file
+    from django.core.files.base import ContentFile
+    dv.file.save(f"corrected_{dv.file.name}", ContentFile(csv_bytes), save=False)
+    
+    # Update schema and profile
+    dv.sha256 = sha256
+    dv.row_count = int(df.shape[0])
+    dv.column_count = int(df.shape[1])
+    dv.schema_json = {"columns": [{"name": c, "dtype": str(df[c].dtype)} for c in df.columns]}
+    dv.profile_json = {
+        "missing_by_column": {c: int(df[c].isna().sum()) for c in df.columns},
+        "unique_by_column": {c: int(df[c].nunique(dropna=True)) for c in df.columns},
+    }
+    dv.notes = (dv.notes or "") + f"\nData types corrected on {timezone.now().strftime('%Y-%m-%d %H:%M')}"
+    dv.save()
+
+    # Regenerate plots with corrected types
+    from apps.visualization.services import generate_dataset_plots
+    generate_dataset_plots(dataset_version=dv, df=df, owner=request.user, project=dv.dataset.project)
+
+    return redirect("dataset_version_detail", version_id=dv.id)
 
 
 @login_required

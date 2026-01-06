@@ -14,6 +14,7 @@ from django.http import FileResponse, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 from rest_framework.exceptions import ValidationError as DRFValidationError
+from django.contrib import messages
 
 
 from apps.datasets.models import Project, Dataset, DatasetVersion
@@ -262,7 +263,7 @@ def dataset_detail(request: HttpRequest, dataset_id: int) -> HttpResponse:
 def dataset_version_detail(request: HttpRequest, version_id: int) -> HttpResponse:
     """
     ENHANCED:
-    - Shows first 10 rows preview
+    - Shows first 5 rows preview
     - Highlights data type issues (Check moved to Python side)
     """
     dv = get_object_or_404(DatasetVersion, id=version_id)
@@ -288,7 +289,7 @@ def dataset_version_detail(request: HttpRequest, version_id: int) -> HttpRespons
     has_type_issues = any("object" in str(r["dtype"]) for r in row_data)
 
     # Load first 10 rows for preview
-    df = pd.read_csv(dv.file.path, nrows=10)
+    df = pd.read_csv(dv.file.path, nrows=5)
     preview_rows = df.to_dict('records')
 
     # Fetch dataset-level plots
@@ -913,3 +914,53 @@ def experiment_create_quick(request: HttpRequest, pipeline_id: int) -> HttpRespo
 
     run_experiment_threaded(exp.id)
     return redirect("experiment_results", experiment_id=exp.id)
+
+
+# ==================== DELETE VIEWS ====================
+
+@login_required
+def project_delete(request: HttpRequest, project_id: int) -> HttpResponse:
+    project = get_object_or_404(Project, id=project_id, owner=request.user)
+    
+    if request.method == "POST":
+        project.delete()
+        messages.success(request, f"Project '{project.name}' and all its resources have been deleted.")
+        return redirect("dashboard")
+    
+    return render(request, "common/confirm_delete.html", {
+        "object": project, 
+        "type": "Project",
+        "warning": "This will permanently delete all datasets, pipelines, experiments, and trained models inside this project."
+    })
+
+@login_required
+def dataset_delete(request: HttpRequest, dataset_id: int) -> HttpResponse:
+    dataset = get_object_or_404(Dataset, id=dataset_id, owner=request.user)
+    project_id = dataset.project.id
+    
+    if request.method == "POST":
+        dataset.delete()
+        messages.success(request, f"Dataset '{dataset.name}' has been deleted.")
+        return redirect("project_detail", project_id=project_id)
+    
+    return render(request, "common/confirm_delete.html", {
+        "object": dataset, 
+        "type": "Dataset",
+        "warning": "This will delete all versions, pipelines, and experiments associated with this dataset."
+    })
+
+@login_required
+def experiment_delete(request: HttpRequest, experiment_id: int) -> HttpResponse:
+    exp = get_object_or_404(Experiment, id=experiment_id, owner=request.user)
+    project_id = exp.project.id
+    
+    if request.method == "POST":
+        exp.delete()
+        messages.success(request, f"Experiment '{exp.name}' deleted.")
+        return redirect("project_detail", project_id=project_id)
+        
+    return render(request, "common/confirm_delete.html", {
+        "object": exp, 
+        "type": "Experiment",
+        "warning": "This will delete the trained model artifact and all metrics."
+    })

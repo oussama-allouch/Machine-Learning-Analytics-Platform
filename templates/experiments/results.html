@@ -40,6 +40,9 @@
       <a class="btn btn-warning" href="{% url 'experiment_create_quick' pipeline_id=exp.pipeline_id %}">
         <i class="bi bi-lightning-charge-fill me-2"></i>Try Another Algorithm
       </a>
+      <a class="btn btn-outline-danger" href="{% url 'experiment_delete' experiment_id=exp.id %}">
+        <i class="bi bi-trash"></i> Delete
+      </a>
     </div>
   </div>
 

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Confirm Delete · ML Platform{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card border-danger shadow-lg">
+        <div class="card-header bg-danger text-white fw-bold">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>Confirm Deletion
+        </div>
+        <div class="card-body p-4 text-center">
+          <h4 class="mb-3">Delete {{ type }}?</h4>
+          <p class="lead">
+            Are you sure you want to delete <strong>"{{ object.name }}"</strong>?
+          </p>
+          
+          {% if warning %}
+            <div class="alert alert-warning text-start">
+              <i class="bi bi-cone-striped me-2"></i><strong>Warning:</strong> {{ warning }}
+            </div>
+          {% endif %}
+
+          <p class="text-muted small">This action cannot be undone.</p>
+
+          <form method="post" class="mt-4 d-flex justify-content-center gap-3">
+            {% csrf_token %}
+            <a href="javascript:history.back()" class="btn btn-outline-secondary px-4">Cancel</a>
+            <button type="submit" class="btn btn-danger px-4">
+              <i class="bi bi-trash-fill me-2"></i>Yes, Delete
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

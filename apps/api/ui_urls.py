@@ -37,5 +37,10 @@ urlpatterns = [
 
     path("dataset-versions/<int:version_id>/edit-types/", ui_views.dataset_version_edit_types, name="dataset_version_edit_types"),
 
+    # Delete Routes
+    path("projects/<int:project_id>/delete/", ui_views.project_delete, name="project_delete"),
+    path("datasets/<int:dataset_id>/delete/", ui_views.dataset_delete, name="dataset_delete"),
+    path("experiments/<int:experiment_id>/delete/", ui_views.experiment_delete, name="experiment_delete"),
+
 
 ]

@@ -7,9 +7,16 @@
       <h2 class="mb-0">{{ dataset.name }}</h2>
       <div class="text-muted">{{ dataset.description }}</div>
     </div>
-    <a class="btn btn-primary" href="{% url 'dataset_upload' %}?dataset_id={{ dataset.id }}">
-      <i class="bi bi-plus-circle me-2"></i>Upload New Version
-    </a>
+    <div class="d-flex gap-2">
+      <!-- Delete Button -->
+      <a class="btn btn-outline-danger" href="{% url 'dataset_delete' dataset_id=dataset.id %}">
+        <i class="bi bi-trash"></i> Delete
+      </a>
+      <!-- Upload Button (Modified from previous step) -->
+      <a class="btn btn-primary" href="{% url 'dataset_upload' %}?dataset_id={{ dataset.id }}">
+        Upload New Version
+      </a>
+    </div>
   </div>
 
   <div class="card shadow-sm">

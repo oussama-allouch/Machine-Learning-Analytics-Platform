@@ -2,68 +2,119 @@
 {% block title %}Model Comparison · ML Platform{% endblock %}
 
 {% block content %}
-  <div class="d-flex justify-content-between align-items-center mb-3">
+<div class="container my-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-      <h2 class="mb-0">Model Comparison</h2>
-      <div class="text-muted">Project: <span class="fw-semibold">{{ project.name }}</span></div>
+      <h2 class="fw-bold mb-1">
+        <i class="bi bi-bar-chart-line me-2 text-primary"></i>Model Comparison
+      </h2>
+      <p class="text-muted mb-0">
+        Project: <span class="fw-semibold">{{ project.name }}</span>
+      </p>
     </div>
-    <a class="btn btn-outline-secondary" href="{% url 'project_detail' project_id=project.id %}">Back</a>
+    <a class="btn btn-outline-secondary" href="{% url 'project_detail' project_id=project.id %}">
+      <i class="bi bi-arrow-left me-2"></i>Back to Project
+    </a>
   </div>
 
-  <div class="row g-3">
-    <div class="col-lg-6">
-      <div class="card shadow-sm">
-        <div class="card-header fw-semibold">Comparison Chart</div>
-        <div class="card-body">
+  <div class="row g-4">
+    <!-- Chart Section (Full Width for visibility) -->
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom py-3">
+          <h5 class="mb-0 fw-bold text-dark">
+            <i class="bi bi-trophy me-2 text-warning"></i>Performance Leaderboard
+          </h5>
+        </div>
+        <div class="card-body text-center bg-light">
           {% if plot_url %}
-            <img class="img-fluid rounded border" src="{{ plot_url }}" alt="Model comparison chart">
+            <img class="img-fluid rounded border shadow-sm bg-white p-2" src="{{ plot_url }}" alt="Model comparison chart" style="max-height: 500px;">
           {% else %}
-            <div class="text-muted">No completed experiments with metrics yet.</div>
+            <div class="py-5 text-muted">
+              <i class="bi bi-bar-chart" style="font-size: 3rem;"></i>
+              <p class="mt-3">No comparison data available yet. Run some experiments!</p>
+            </div>
           {% endif %}
         </div>
       </div>
     </div>
 
-    <div class="col-lg-6">
-      <div class="card shadow-sm">
-        <div class="card-header fw-semibold">Experiments Metrics</div>
-        <div class="card-body">
-          {% if rows %}
-            <div class="table-responsive">
-              <table class="table table-sm align-middle">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Algorithm</th>
-                    <th>Task</th>
-                    <th>Status</th>
-                    <th>Primary</th>
+    <!-- Detailed Metrics Table -->
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom py-3">
+          <h5 class="mb-0 fw-bold">
+            <i class="bi bi-table me-2 text-secondary"></i>Detailed Metrics
+          </h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-4">Rank</th>
+                  <th>Algorithm</th>
+                  <th>Experiment Name</th>
+                  <th>Status</th>
+                  <th>Primary Score</th>
+                  <th>Secondary Metrics</th>
+                  <th class="text-end pe-4">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in rows|dictsortreversed:"primary" %}
+                  <tr class="{% if forloop.first %}bg-success-subtle{% endif %}">
+                    <td class="ps-4 fw-bold text-secondary">#{{ forloop.counter }}</td>
+                    <td>
+                      <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                        {{ r.algorithm }}
+                      </span>
+                    </td>
+                    <td>
+                      <a href="{% url 'experiment_results' experiment_id=r.id %}" class="text-decoration-none fw-semibold">
+                        {{ r.name }}
+                      </a>
+                      <br>
+                      <small class="text-muted">ID: {{ r.id }}</small>
+                    </td>
+                    <td>
+                      {% if r.status == 'SUCCEEDED' %}
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                      {% elif r.status == 'FAILED' %}
+                        <i class="bi bi-x-circle-fill text-danger"></i>
+                      {% else %}
+                        <div class="spinner-border spinner-border-sm text-primary"></div>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <span class="fs-5 fw-bold {% if forloop.first %}text-success{% else %}text-dark{% endif %}">
+                        {{ r.primary|floatformat:4 }}
+                      </span>
+                    </td>
+                    <td class="small text-muted">
+                      {% if r.accuracy %}Acc: {{ r.accuracy|floatformat:3 }}<br>{% endif %}
+                      {% if r.f1_macro %}F1: {{ r.f1_macro|floatformat:3 }}<br>{% endif %}
+                      {% if r.r2 %}R²: {{ r.r2|floatformat:3 }}<br>{% endif %}
+                      {% if r.rmse %}RMSE: {{ r.rmse|floatformat:3 }}{% endif %}
+                    </td>
+                    <td class="text-end pe-4">
+                      <a href="{% url 'experiment_results' experiment_id=r.id %}" class="btn btn-sm btn-outline-primary">
+                        View
+                      </a>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {% for r in rows %}
-                    <tr>
-                      <td>{{ r.id }}</td>
-                      <td><a href="{% url 'experiment_results' experiment_id=r.id %}">{{ r.name }}</a></td>
-                      <td>{{ r.algorithm }}</td>
-                      <td><span class="badge bg-secondary">{{ r.task }}</span></td>
-                      <td>{{ r.status }}</td>
-                      <td><code>{{ r.primary }}</code></td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-
-            <div class="small text-muted">
-              Primary metric is Accuracy for Classification and R² for Regression.
-            </div>
-          {% else %}
-            <div class="text-muted">No experiments yet.</div>
-          {% endif %}
+                {% empty %}
+                  <tr>
+                    <td colspan="7" class="text-center py-4 text-muted">No experiments found.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
   </div>
+</div>
 {% endblock %}

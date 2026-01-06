@@ -316,19 +316,21 @@ def plot_learning_curve(
 
 def plot_project_model_comparison(*, project, owner) -> Optional[PlotArtifact]:
     """
-    Bar chart comparing experiments in a project by primary test metric:
-      - Classification -> Accuracy
-      - Regression -> R2
-    Stores a project-level PlotArtifact: (project, plot_type='project_model_comparison', experiment=None, dataset_version=None)
+    Horizontal Bar chart comparing experiments.
+    - Sorted by performance (best on top)
+    - Value annotations on bars
+    - Modern styling
     """
+    from apps.ml_models.models import Experiment, EvaluationResult, MLTaskType
+
     exps = (
         Experiment.objects.filter(project=project, owner=owner)
         .select_related("pipeline", "algorithm")
-        .order_by("created_at")
+        .order_by("-created_at")
     )
-    labels: List[str] = []
-    values: List[float] = []
-    metric_name = None
+    
+    data = []
+    metric_name = "Score"
 
     for e in exps:
         ev = EvaluationResult.objects.filter(experiment=e).first()
@@ -336,31 +338,54 @@ def plot_project_model_comparison(*, project, owner) -> Optional[PlotArtifact]:
             continue
         test = ev.metrics.get("test", {}) if isinstance(ev.metrics, dict) else {}
 
+        val = None
         if e.pipeline.task_type == MLTaskType.CLASSIFICATION:
-            v = test.get("accuracy", None)
-            metric_name = "accuracy"
+            val = test.get("accuracy")
+            metric_name = "Accuracy"
         elif e.pipeline.task_type == MLTaskType.REGRESSION:
-            v = test.get("r2", None)
-            metric_name = "r2"
-        else:
-            continue
+            val = test.get("r2")
+            metric_name = "R² Score"
+        
+        if val is not None:
+            # Create a label like "Random Forest #12"
+            label = f"{e.algorithm.display_name} (#{e.id})"
+            data.append((label, float(val)))
 
-        if v is None:
-            continue
-
-        labels.append(f"{e.algorithm.display_name} #{e.id}")
-        values.append(float(v))
-
-    if not values:
+    if not data:
         return None
 
-    fig = plt.figure(figsize=(10, 5))
-    ax = fig.add_subplot(111)
-    ax.bar(range(len(values)), values)
-    ax.set_title(f"Model Comparison ({metric_name})")
-    ax.set_ylabel(metric_name)
-    ax.set_xticks(range(len(values)))
-    ax.set_xticklabels(labels, rotation=45, ha="right")
+    # Sort data: Lowest score at bottom, Highest at top
+    data.sort(key=lambda x: x[1])
+    
+    labels = [x[0] for x in data]
+    values = [x[1] for x in data]
+
+    # --- Modern Matplotlib Styling ---
+    plt.style.use('seaborn-v0_8-whitegrid') # Use a clean theme
+    fig, ax = plt.subplots(figsize=(10, len(values) * 0.8 + 2)) # Dynamic height
+    
+    # Plot Horizontal Bars
+    bars = ax.barh(labels, values, color='#6366f1', alpha=0.8, height=0.6)
+    
+    # Add labels to the end of bars
+    ax.bar_label(bars, fmt='%.3f', padding=5, fontsize=10, fontweight='bold')
+
+    # Styling
+    ax.set_title(f"Model Comparison ({metric_name})", fontsize=14, fontweight='bold', pad=20)
+    ax.set_xlabel(metric_name, fontsize=11)
+    
+    # Remove top and right borders
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.spines['bottom'].set_color('#dddddd')
+    
+    # Grid configuration
+    ax.grid(axis='x', linestyle='--', alpha=0.5)
+    ax.grid(axis='y', visible=False)
+
+    # Adjust layout
+    plt.tight_layout()
 
     png = _fig_to_png_bytes(fig)
     return _upsert_plot(

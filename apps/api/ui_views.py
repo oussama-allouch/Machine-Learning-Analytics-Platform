@@ -15,6 +15,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from django.contrib import messages
+from django.core.files.base import ContentFile
 
 
 from apps.datasets.models import Project, Dataset, DatasetVersion
@@ -289,8 +290,16 @@ def dataset_version_detail(request: HttpRequest, version_id: int) -> HttpRespons
     has_type_issues = any("object" in str(r["dtype"]) for r in row_data)
 
     # Load first 10 rows for preview
-    df = pd.read_csv(dv.file.path, nrows=5)
-    preview_rows = df.to_dict('records')
+    preview_rows = []
+    if dv.file:
+        try:
+            # open() handles both local paths and cloud storage safely
+            with dv.file.open("rb") as f:
+                df = pd.read_csv(f, nrows=10)
+            preview_rows = df.to_dict('records')
+        except Exception:
+            # File missing or corrupt; fail silently for preview
+            preview_rows = []
 
     # Fetch dataset-level plots
     plots = PlotArtifact.objects.filter(dataset_version=dv, experiment__isnull=True)
@@ -726,55 +735,62 @@ def dataset_create_manual(request):
     columns_json = request.POST.get("columns_json")
 
     errors = {}
-    if not project_id:
-        errors["project_id"] = "Project is required."
-    if not dataset_name:
-        errors["dataset_name"] = "Dataset name is required."
-    if not rows_json or not columns_json:
-        errors["rows_json"] = "Dataset rows and columns are required."
+    if not project_id: errors["project_id"] = "Project is required."
+    if not dataset_name: errors["dataset_name"] = "Dataset name is required."
+    if not rows_json or not columns_json: errors["rows_json"] = "Dataset rows and columns are required."
 
     if errors:
         return render(request, "datasets/create_manual.html", {"projects": projects, "errors": errors})
 
-    # Parse the JSON data
     try:
         columns = json.loads(columns_json)
         rows = json.loads(rows_json)
     except ValueError as e:
-        errors["json_parse"] = f"Error parsing JSON data: {str(e)}"
-        return render(request, "datasets/create_manual.html", {"projects": projects, "errors": errors})
+        return render(request, "datasets/create_manual.html", {"projects": projects, "errors": {"json": str(e)}})
 
-    # Create the dataset as a DataFrame
+    # Convert to DataFrame
     data = {col["name"]: [] for col in columns}
     for row in rows:
         for col in columns:
             data[col["name"]].append(row.get(col["name"], None))
     df = pd.DataFrame(data)
 
-    # Simulate CSV upload for DatasetVersion compatibility
-    csv_file = df.to_csv(index=False)
-    sha256 = DatasetVersion.compute_sha256(csv_file.encode())
+    # 1. Prepare Content
+    csv_content = df.to_csv(index=False).encode('utf-8')
+    sha256 = DatasetVersion.compute_sha256(csv_content)
+    
     dataset = Dataset.objects.create(
         owner=request.user,
         project_id=int(project_id),
         name=dataset_name,
         description=description,
+        source_type="MANUAL_TABLE"
     )
-    dataset_version = DatasetVersion.objects.create(
+
+    # 2. Create Object (without file first)
+    dv = DatasetVersion(
         dataset=dataset,
         created_by=request.user,
         version_number=1,
-        file=None,  # Simulating CSV upload without file input
         sha256=sha256,
         row_count=df.shape[0],
         column_count=df.shape[1],
         schema_json={"columns": [{"name": c, "dtype": str(df[c].dtype)} for c in df.columns]},
-        profile_json={},
-        notes="",
+        profile_json={
+            "missing_by_column": {c: int(df[c].isna().sum()) for c in df.columns},
+            "unique_by_column": {c: int(df[c].nunique(dropna=True)) for c in df.columns},
+        },
+        notes="Created manually via UI",
     )
 
-    return redirect("dataset_version_detail", version_id=dataset_version.id)
+    # 3. Save File Properly using ContentFile
+    filename = f"manual_{dataset.id}_v1.csv"
+    dv.file.save(filename, ContentFile(csv_content), save=True)
 
+    # 4. Generate Plots
+    generate_dataset_plots(dataset_version=dv, df=df, owner=request.user, project=dataset.project)
+
+    return redirect("dataset_version_detail", version_id=dv.id)
 # ==================== NEW VIEWS FOR PHASE 12 ====================
 
 @login_required

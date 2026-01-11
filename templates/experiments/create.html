@@ -30,6 +30,14 @@
             </select>
           </div>
 
+          <!-- Algorithm Info Card (Hidden by default, shown via JS) -->
+          <div class="col-12" id="algoInfoCard" style="display:none;">
+            <div class="alert alert-light border shadow-sm">
+              <h6 class="fw-bold"><i class="bi bi-info-circle me-2 text-primary"></i>About <span id="algoNameDisplay"></span></h6>
+              <p class="mb-0 small text-muted" id="algoSummaryDisplay"></p>
+            </div>
+          </div>
+
           <div class="col-md-3">
             <label class="form-label">Test Size</label>
             <input class="form-control" name="test_size" type="number" step="0.05" min="0.05" max="0.5" value="0.2" />
@@ -180,6 +188,17 @@
   function renderHyperparams(useDefaults=true) {
     area.innerHTML = "";
     const algo = currentAlgo();
+
+    // --- NEW: Update Info Card ---
+    const infoCard = document.getElementById("algoInfoCard");
+    if (algo) {
+        document.getElementById("algoNameDisplay").textContent = algo.display_name;
+        document.getElementById("algoSummaryDisplay").textContent = algo.educational_summary;
+        infoCard.style.display = "block";
+    } else {
+        infoCard.style.display = "none";
+    }
+
     if (!algo) return;
 
     const schema = algo.hyperparameter_schema || {};

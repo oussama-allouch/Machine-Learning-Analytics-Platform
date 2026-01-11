@@ -567,6 +567,7 @@ def experiment_create(request: HttpRequest, pipeline_id: int) -> HttpResponse:
                 "supported_tasks": a.supported_tasks,
                 "hyperparameter_schema": a.hyperparameter_schema,
                 "default_hyperparameters": a.default_hyperparameters,
+                "educational_summary": a.educational_summary,
             })
         return render(request, "experiments/create.html", {
             "pipeline": pipeline,
@@ -831,9 +832,11 @@ def landing_page(request: HttpRequest) -> HttpResponse:
 
 def docs_view(request: HttpRequest) -> HttpResponse:
     """
-    Documentation page explaining the workflow.
+    Documentation page explaining the workflow AND algorithms.
     """
-    return render(request, "docs.html", {})
+    # Fetch all algorithms to display their educational content
+    algorithms = Algorithm.objects.all().order_by("family", "display_name")
+    return render(request, "docs.html", {"algorithms": algorithms})
 
 @login_required
 @require_http_methods(["GET", "POST"])
@@ -859,6 +862,7 @@ def experiment_create_quick(request: HttpRequest, pipeline_id: int) -> HttpRespo
                 "supported_tasks": a.supported_tasks,
                 "hyperparameter_schema": a.hyperparameter_schema,
                 "default_hyperparameters": a.default_hyperparameters,
+                "educational_summary": a.educational_summary,
             })
         return render(request, "experiments/create_quick.html", {
             "pipeline": pipeline,

@@ -3,6 +3,21 @@
 {% block title %}Documentation · ML Platform{% endblock %}
 
 {% block content %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']]
+    },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<!-- MathJax for beautiful equations -->
+
+<script id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 <div class="container my-5">
   <!-- Header -->
   <div class="text-center mb-5">
@@ -116,50 +131,60 @@
         </div>
       </div>
 
-      <!-- Algorithms -->
+      <!-- Algorithms Dictionary -->
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-body p-4">
           <h4 class="fw-bold mb-4">
-            <i class="bi bi-cpu me-2 text-success"></i>Supported Algorithms
+            <i class="bi bi-cpu me-2 text-success"></i>Algorithm Guide
           </h4>
+          <p class="text-muted mb-4">Click on an algorithm to understand how it works.</p>
           
-          <div class="row g-4">
-            <div class="col-md-6">
-              <h6 class="fw-bold text-primary mb-3">
-                <i class="bi bi-graph-up me-2"></i>Regression
-              </h6>
-              <ul class="list-unstyled">
-                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Linear Regression</li>
-                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Decision Tree</li>
-                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Random Forest</li>
-                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>SVR</li>
-                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Neural Network (MLP)</li>
-              </ul>
-            </div>
+          <div class="accordion" id="algoAccordion">
+            {% for algo in algorithms %}
+              <div class="accordion-item">
+                <h2 class="accordion-header">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#algo-{{ algo.id }}">
+                    <span class="badge bg-light text-dark border me-2">{{ algo.family }}</span>
+                    <strong>{{ algo.display_name }}</strong>
+                  </button>
+                </h2>
+                <div id="algo-{{ algo.id }}" class="accordion-collapse collapse" data-bs-parent="#algoAccordion">
+                  <div class="accordion-body">
+                    <div class="mb-3">
+                      <h6 class="fw-bold">How it works:</h6>
+                      <p>{{ algo.educational_summary }}</p>
+                    </div>
+                    
+                    {% if algo.educational_details_md %}
+                    <div class="mb-3">
+                        <h6 class="fw-bold">Details:</h6>
+                        <!-- Note: In a real app we would use a markdown filter here, 
+                             but for now we just show the text or basic formatting -->
+                        <div class="markdown-container">
+                            <!-- Store raw markdown safely here -->
+                            <script type="text/markdown" class="raw-markdown">
+                        {{ algo.educational_details_md }}
+                            </script>
+                            <!-- Rendered HTML goes here -->
+                            <div class="bg-light p-3 rounded small rendered-output"></div>
+                        </div>
+                    </div>
+                    {% endif %}
 
-            <div class="col-md-6">
-              <h6 class="fw-bold text-success mb-3">
-                <i class="bi bi-diagram-3 me-2"></i>Classification
-              </h6>
-              <ul class="list-unstyled">
-                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Logistic Regression</li>
-                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Decision Tree</li>
-                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Random Forest</li>
-                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>SVM</li>
-                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Naive Bayes</li>
-                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>K-Nearest Neighbors</li>
-                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Neural Network (MLP)</li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="mt-4">
-            <h6 class="fw-bold text-info mb-3">
-              <i class="bi bi-collection me-2"></i>Clustering
-            </h6>
-            <ul class="list-unstyled">
-              <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>K-Means</li>
-            </ul>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-success">Strengths</h6>
+                            <p class="small text-muted">{{ algo.strengths_md|default:"-" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-danger">Limitations</h6>
+                            <p class="small text-muted">{{ algo.limitations_md|default:"-" }}</p>
+                        </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
           </div>
         </div>
       </div>
@@ -270,4 +295,35 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log("Docs page loaded. Starting markdown rendering...");
+
+    document.querySelectorAll('.markdown-container').forEach((container, index) => {
+      const scriptTag = container.querySelector('.raw-markdown');
+      const outputDiv = container.querySelector('.rendered-output');
+      
+      if (scriptTag && outputDiv) {
+        let rawMd = scriptTag.innerHTML;
+        // Clean up indentation
+        rawMd = rawMd.replace(/^\s+/gm, ''); 
+
+        if (rawMd.trim()) {
+          // 1. Render Markdown
+          outputDiv.innerHTML = marked.parse(rawMd);
+          
+          // 2. Render Math (Safety Check)
+          if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+             window.MathJax.typesetPromise([outputDiv]).catch((err) => console.log(err));
+          } else {
+             console.warn("MathJax loaded but typesetPromise not found yet.");
+          }
+        }
+      }
+    });
+  });
+</script>
 {% endblock %}

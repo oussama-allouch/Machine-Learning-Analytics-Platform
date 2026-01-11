@@ -105,8 +105,8 @@ REST_FRAMEWORK = {
 
 # Redirect to Admin login by default
 LOGIN_URL = "/admin/login/"
-LOGIN_REDIRECT_URL = "/"
-LOGOUT_REDIRECT_URL = "/admin/login/"
+LOGIN_REDIRECT_URL = "/dashboard/"
+LOGOUT_REDIRECT_URL = "/"
 
 
 # 1. Upload Limits (Server-side protection)

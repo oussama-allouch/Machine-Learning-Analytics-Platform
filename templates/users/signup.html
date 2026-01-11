@@ -1,50 +1,91 @@
 {% extends "base.html" %}
-{% block title %}Sign up · ML Platform{% endblock %}
+{% block title %}Sign Up · ML Platform{% endblock %}
 
 {% block content %}
-  <div class="row justify-content-center">
-    <div class="col-lg-6">
-      <div class="card shadow-sm">
-        <div class="card-header fw-semibold">Create an account</div>
-        <div class="card-body">
-          <form method="post" class="vstack gap-3">
-            {% csrf_token %}
+<!-- Full Height Container with Hero Background (Same as Login) -->
+<div class="d-flex align-items-center justify-content-center" style="min-height: 85vh; background: #0f172a; position: relative; overflow: hidden;">
+  
+  <!-- Ambient Background Blobs (Same as Login) -->
+  <div style="position: absolute; top: 10%; left: 20%; width: 300px; height: 300px; background: #6366f1; border-radius: 50%; filter: blur(80px); opacity: 0.4;"></div>
+  <div style="position: absolute; bottom: 10%; right: 20%; width: 250px; height: 250px; background: #ec4899; border-radius: 50%; filter: blur(80px); opacity: 0.3;"></div>
 
-            {% if form.non_field_errors %}
-              <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-            {% endif %}
-
-            <div>
-              <label class="form-label">Username</label>
-              {{ form.username }}
-              {% if form.username.errors %}<div class="text-danger small">{{ form.username.errors }}</div>{% endif %}
-            </div>
-
-            <div>
-              <label class="form-label">Password</label>
-              {{ form.password1 }}
-              {% if form.password1.errors %}<div class="text-danger small">{{ form.password1.errors }}</div>{% endif %}
-            </div>
-
-            <div>
-              <label class="form-label">Confirm Password</label>
-              {{ form.password2 }}
-              {% if form.password2.errors %}<div class="text-danger small">{{ form.password2.errors }}</div>{% endif %}
-            </div>
-
-            <button class="btn btn-primary" type="submit">Sign up</button>
-
-            <div class="text-muted small">
-              Already have an account? <a href="{% url 'login' %}">Login</a>
-            </div>
-          </form>
-        </div>
+  <!-- Glass Card (Slightly wider for 3 fields) -->
+  <div class="card border-0 shadow-lg" style="width: 450px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; z-index: 10;">
+    
+    <div class="card-body p-5">
+      <div class="text-center mb-4">
+        <h3 class="fw-bold text-white mb-1">Create Account</h3>
+        <p class="text-white-50 small">Join us to start building models</p>
       </div>
+
+      <form method="post" class="vstack gap-3">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger py-2 small bg-danger-subtle border-0 text-danger">
+            {{ form.non_field_errors }}
+          </div>
+        {% endif %}
+
+        <div>
+          <label class="form-label text-white-50 small fw-bold">USERNAME</label>
+          {{ form.username }}
+          {% if form.username.errors %}
+            <div class="text-danger small mt-1">{{ form.username.errors }}</div>
+          {% endif %}
+        </div>
+
+        <div>
+          <label class="form-label text-white-50 small fw-bold">PASSWORD</label>
+          {{ form.password1 }}
+          {% if form.password1.errors %}
+            <div class="text-danger small mt-1">{{ form.password1.errors }}</div>
+          {% endif %}
+        </div>
+
+        <div>
+          <label class="form-label text-white-50 small fw-bold">CONFIRM PASSWORD</label>
+          {{ form.password2 }}
+          {% if form.password2.errors %}
+            <div class="text-danger small mt-1">{{ form.password2.errors }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Button uses same gradient as Login -->
+        <button class="btn btn-primary w-100 py-2 rounded-pill fw-bold shadow-sm mt-3" type="submit" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border: none;">
+          Sign Up
+        </button>
+      </form>
+    </div>
+
+    <div class="card-footer text-center py-3 border-top border-white-10" style="border-color: rgba(255,255,255,0.1);">
+      <small class="text-white-50">Already have an account? <a href="{% url 'login' %}" class="text-white fw-bold text-decoration-none">Log in</a></small>
     </div>
   </div>
+</div>
 
-  <style>
-    /* Make Django form widgets Bootstrap-friendly */
-    input { width: 100%; padding: .375rem .75rem; border: 1px solid #ced4da; border-radius: .375rem; }
-  </style>
+<style>
+  /* Force Django Form Widgets to match Login Style */
+  input[type="text"], input[type="password"] {
+    width: 100%;
+    padding: .6rem 1rem;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    background-color: rgba(255,255,255,0.05);
+    color: white;
+    display: block;
+  }
+  
+  /* Focus State - Purple Glow */
+  input[type="text"]:focus, input[type="password"]:focus {
+    border-color: #6366f1;
+    outline: none;
+    background-color: rgba(255,255,255,0.1);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    color: white;
+  }
+
+  /* Hide default Django help text to keep it clean */
+  .helptext { display: none; }
+</style>
 {% endblock %}

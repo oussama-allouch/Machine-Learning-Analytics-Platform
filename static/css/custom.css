@@ -653,3 +653,93 @@ body {
     margin-bottom: 1rem;
   }
 }
+
+/* ============================================
+   Phase 17: Premium Polish (Navbar/Hero/Footer)
+   ============================================ */
+
+/* Navbar: Deep Blur & Gradient Border */
+.navbar {
+    background-color: rgba(15, 23, 42, 0.9) !important; /* Dark Blue-Grey */
+    backdrop-filter: blur(20px) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2) !important;
+}
+
+.navbar-brand {
+    font-size: 1.5rem !important;
+    font-weight: 800 !important;
+    background: linear-gradient(135deg, #fff 0%, #818cf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 2px 10px rgba(129, 140, 248, 0.3);
+}
+
+/* Nav Links: White/Grey */
+.navbar-dark .navbar-nav .nav-link {
+    color: rgba(255, 255, 255, 0.7) !important;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.navbar-dark .navbar-nav .nav-link:hover,
+.navbar-dark .navbar-nav .nav-link.active {
+    color: #ffffff !important;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* Hero Section: Dynamic Gradient Mesh */
+.hero-section {
+    background-color: #0f172a;
+    background-image: 
+        radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+        radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+        radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+    position: relative;
+    padding: 8rem 0 6rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.hero-section h1 {
+    font-size: 4rem;
+    line-height: 1.1;
+    text-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.hero-section .lead {
+    color: #94a3b8;
+    max-width: 600px;
+    margin-left: auto; /* Center alignment helpers if needed */
+    margin-right: auto;
+}
+
+
+/* Footer: Matches Navbar */
+footer.bg-dark {
+    background-color: #0f172a !important; /* Same Dark Blue-Grey */
+    border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+    color: #94a3b8 !important;
+}
+footer h5 {
+    color: #fff !important;
+    font-weight: 700;
+}
+
+footer p {
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+/* Primary Button Upgrade */
+.btn-light {
+    background: #fff;
+    color: #0f172a;
+    border: 1px solid #fff;
+    font-weight: 700;
+}
+
+.btn-light:hover {
+    background: #f8fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(255, 255, 255, 0.3);
+}

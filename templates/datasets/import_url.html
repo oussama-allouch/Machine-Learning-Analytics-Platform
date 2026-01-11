@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Import from URL · ML Platform{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="text-center mb-5">
+        <div class="mb-3">
+          <i class="bi bi-globe" style="font-size: 4rem; color: var(--info);"></i>
+        </div>
+        <h2 class="fw-bold mb-2">Import from Platform</h2>
+        <p class="text-muted">Connect to external data sources via URL (GitHub, UCI, etc.)</p>
+      </div>
+
+      <div class="card shadow-lg border-0">
+        <div class="card-body p-4">
+          <form method="post" id="urlForm">
+            {% csrf_token %}
+
+            <div class="mb-4">
+              <label class="form-label">Select Project</label>
+              <select class="form-select" name="project_id" required>
+                {% for p in projects %}
+                  <option value="{{ p.id }}">{{ p.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label">Dataset Name</label>
+              <input class="form-control" name="dataset_name" placeholder="e.g. Iris from UCI" required />
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label">Data URL</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-link-45deg"></i></span>
+                <input type="url" class="form-control" name="url" placeholder="https://raw.githubusercontent.com/..." required>
+              </div>
+              <div class="form-text">Direct link to a raw CSV or Excel file.</div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+              <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+              <button type="submit" class="btn btn-info text-white">
+                <i class="bi bi-cloud-download me-2"></i>Fetch & Import
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      <!-- Quick Links Helper -->
+      <div class="mt-4 text-center">
+        <p class="small text-muted mb-2">Try a sample dataset:</p>
+        <button type="button" class="btn btn-sm btn-light border" onclick="fillUrl('https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv')">
+          <i class="bi bi-github"></i> Titanic (GitHub)
+        </button>
+        <button type="button" class="btn btn-sm btn-light border" onclick="fillUrl('https://raw.githubusercontent.com/mwaskom/seaborn-data/master/iris.csv')">
+          <i class="bi bi-flower1"></i> Iris (GitHub)
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function fillUrl(url) {
+  document.querySelector('input[name="url"]').value = url;
+}
+</script>
+{% endblock %}

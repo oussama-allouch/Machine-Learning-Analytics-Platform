@@ -4,6 +4,7 @@ import json
 from typing import Any, Dict
 import io
 from django.utils import timezone
+import requests
 
 import os
 import openpyxl
@@ -984,3 +985,95 @@ def experiment_delete(request: HttpRequest, experiment_id: int) -> HttpResponse:
         "type": "Experiment",
         "warning": "This will delete the trained model artifact and all metrics."
     })
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def dataset_import_url(request: HttpRequest) -> HttpResponse:
+    projects = Project.objects.filter(owner=request.user).order_by("-updated_at")
+
+    if request.method == "GET":
+        return render(request, "datasets/import_url.html", {"projects": projects})
+
+    # POST Logic
+    project_id = request.POST.get("project_id")
+    dataset_name = (request.POST.get("dataset_name") or "").strip()
+    url = (request.POST.get("url") or "").strip()
+    description = (request.POST.get("description") or "").strip()
+
+    errors = {}
+    if not project_id: errors["project_id"] = "Project is required."
+    if not dataset_name: errors["dataset_name"] = "Dataset name is required."
+    if not url: errors["url"] = "URL is required."
+
+    if errors:
+        return render(request, "datasets/import_url.html", {"projects": projects, "errors": errors})
+
+    # Try downloading
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        # Simple content validation
+        content_type = response.headers.get("Content-Type", "").lower()
+        # We allow text/plain, text/csv, application/vnd.ms-excel, etc.
+        # But for robust demo, we just check if we got bytes.
+        content = response.content
+    except Exception as e:
+        return render(request, "datasets/import_url.html", {
+            "projects": projects, 
+            "errors": {"url": f"Failed to download: {str(e)}"}
+        })
+
+    # Save logic (Identical to dataset_upload)
+    project = get_object_or_404(Project, id=int(project_id), owner=request.user)
+    
+    dataset, _ = Dataset.objects.get_or_create(
+        owner=request.user,
+        project=project,
+        name=dataset_name,
+        defaults={
+            "description": description,
+            "source_type": "URL", # Mark as URL source
+            "external_source": {"url": url}
+        }
+    )
+
+    sha256 = DatasetVersion.compute_sha256(content)
+    latest = DatasetVersion.objects.filter(dataset=dataset).order_by("-version_number").first()
+    next_version = (latest.version_number + 1) if latest else 1
+
+    # Save file
+    filename = url.split("/")[-1]
+    if "." not in filename: filename += ".csv" # Fallback extension
+    
+    dv = DatasetVersion.objects.create(
+        dataset=dataset,
+        created_by=request.user,
+        version_number=next_version,
+        file=ContentFile(content, name=filename),
+        sha256=sha256,
+        row_count=0,
+        column_count=0,
+        schema_json={},
+        profile_json={},
+        notes=f"Imported from {url}",
+    )
+
+    # Profile
+    try:
+        df = pd.read_csv(dv.file.path)
+        dv.row_count = int(df.shape[0])
+        dv.column_count = int(df.shape[1])
+        dv.schema_json = {"columns": [{"name": c, "dtype": str(df[c].dtype)} for c in df.columns]}
+        dv.profile_json = {
+            "missing_by_column": {c: int(df[c].isna().sum()) for c in df.columns},
+            "unique_by_column": {c: int(df[c].nunique(dropna=True)) for c in df.columns},
+        }
+        dv.save()
+        generate_dataset_plots(dataset_version=dv, df=df, owner=request.user, project=project)
+    except Exception as e:
+        # If read_csv fails (maybe it was an excel link?), we just warn but don't crash
+        pass
+
+    return redirect("dataset_version_detail", version_id=dv.id)

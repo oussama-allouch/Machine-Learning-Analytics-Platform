@@ -21,6 +21,47 @@
     <link rel="stylesheet" href="{% static 'css/custom.css' %}">
     
     {% block extra_css %}{% endblock %}
+    <style>
+  /* --- FORCE OVERRIDE STYLES (Bypasses Cache) --- */
+  
+  /* 1. Navbar: Deep Dark Blue + Blur */
+  .navbar {
+      background-color: #0f172a !important; /* Dark Slate */
+      backdrop-filter: blur(12px) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
+  
+  /* 2. Navbar Brand */
+  .navbar-brand {
+      font-weight: 800 !important;
+      font-size: 1.4rem !important;
+      background: linear-gradient(to right, #fff, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+  }
+  
+  /* 3. Footer: Dark Background & Light Text */
+  footer.bg-dark {
+      background-color: #020617 !important; /* Very Dark Blue */
+      border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+      color: #94a3b8 !important; /* Light Grey Text */
+      margin-top: 0 !important;
+  }
+  
+  footer h5 {
+      color: #fff !important; /* White Headings */
+      font-weight: 700 !important;
+  }
+  
+  footer p {
+      color: #64748b !important;
+  }
+
+  /* 4. Fix Main Container Spacing */
+  main {
+      min-height: 80vh;
+  }
+</style>
   </head>
   <body>
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top">

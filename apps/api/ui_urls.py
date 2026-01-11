@@ -42,5 +42,5 @@ urlpatterns = [
     path("datasets/<int:dataset_id>/delete/", ui_views.dataset_delete, name="dataset_delete"),
     path("experiments/<int:experiment_id>/delete/", ui_views.experiment_delete, name="experiment_delete"),
 
-
+    path("datasets/import-url/", ui_views.dataset_import_url, name="dataset_import_url"),
 ]
